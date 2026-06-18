@@ -12,7 +12,7 @@ import 'package:cobox_sv_mobile/core/network/network_info.dart';
 import 'package:cobox_sv_mobile/core/storage/local_storage.dart';
 import 'package:cobox_sv_mobile/core/storage/secure_storage.dart';
 
-final authStatusProvider = StateProvider<AuthStatus>((ref) => AuthStatus.unknown);
+final authStatusProvider = StateProvider<AuthStatus>((ref) => AuthStatus.unauthenticated);
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
@@ -49,8 +49,7 @@ final dioClientProvider = Provider<DioClient>((ref) {
 });
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final authStatus = ref.watch(authStatusProvider);
-  final router = createRouter(authStatus);
+  final router = createRouter(ref);
   ref.onDispose(router.dispose);
   return router;
 });

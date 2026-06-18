@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:cobox_sv_mobile/app/colors.dart';
-import 'package:cobox_sv_mobile/shared/widgets/avatar_widget.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfilePage extends StatelessWidget {
+import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/app/providers.dart';
+import 'package:cobox_sv_mobile/shared/widgets/avatar_widget.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
+
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -42,7 +46,9 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 8),
             _buildSettingsCard(),
             const SizedBox(height: 16),
-            Center(child: _buildLogoutButton()),
+            Center(
+              child: _buildLogoutButton(context, ref),
+            ),
             const SizedBox(height: 8),
             Center(
               child: Text(
@@ -179,9 +185,12 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: () async {
+        await ref.read(authNotifierProvider.notifier).logout();
+        ref.read(authStatusProvider.notifier).state = AuthStatus.unauthenticated;
+      },
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.danger,
         side: const BorderSide(color: AppColors.danger),

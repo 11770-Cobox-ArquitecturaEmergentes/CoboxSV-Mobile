@@ -5,6 +5,13 @@ import 'package:cobox_sv_mobile/features/authentication/domain/entities/user_ent
 abstract class AuthRepository {
   Future<Either<Failure, UserEntity>> login(String email, String password);
 
+  Future<Either<Failure, UserEntity>> signup({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+  });
+
   Future<Either<Failure, void>> logout();
 
   Future<Either<Failure, UserEntity>> getCurrentUser();

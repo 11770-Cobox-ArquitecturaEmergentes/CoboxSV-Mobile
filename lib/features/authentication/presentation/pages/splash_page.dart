@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
@@ -55,16 +54,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
     switch (state.type) {
       case AuthStateType.authenticated:
         ref.read(authStatusProvider.notifier).state = AuthStatus.authenticated;
-        if (context.mounted) context.go('/home');
       case AuthStateType.unauthenticated:
       case AuthStateType.error:
         ref.read(authStatusProvider.notifier).state =
             AuthStatus.unauthenticated;
-        if (context.mounted) context.go('/login');
       default:
         ref.read(authStatusProvider.notifier).state =
             AuthStatus.unauthenticated;
-        if (context.mounted) context.go('/login');
     }
   }
 

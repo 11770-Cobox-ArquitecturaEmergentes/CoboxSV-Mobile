@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/pages/splash_page.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/pages/login_page.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/pages/signup_page.dart';
 import 'package:cobox_sv_mobile/features/home/presentation/pages/home_page.dart';
 import 'package:cobox_sv_mobile/features/planning/presentation/pages/planning_page.dart';
 import 'package:cobox_sv_mobile/features/routes/presentation/pages/routes_page.dart';
@@ -22,7 +25,7 @@ import 'package:cobox_sv_mobile/shared/widgets/bottom_nav_bar.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
-GoRouter createRouter(AuthStatus authStatus) {
+GoRouter createRouter(Ref ref) {
   // ignore: no_leading_underscores_for_local_identifiers
   final mockVehicle = VehicleEntity(
     id: '1',
@@ -53,21 +56,19 @@ GoRouter createRouter(AuthStatus authStatus) {
   );
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: '/login',
     debugLogDiagnostics: false,
     redirect: (context, state) {
+      final authStatus = ref.read(authStatusProvider);
       final loggedIn = authStatus == AuthStatus.authenticated;
       final location = state.uri.toString();
-      final isSplash = location == '/splash';
       final isLogin = location == '/login';
+      final isSignup = location == '/signup';
 
-      if (authStatus == AuthStatus.unknown && !isSplash) {
-        return '/splash';
-      }
-      if (!loggedIn && !isLogin && !isSplash) {
+      if (!loggedIn && !isLogin && !isSignup) {
         return '/login';
       }
-      if (loggedIn && isLogin) {
+      if (loggedIn && (isLogin || isSignup)) {
         return '/home';
       }
       return null;
@@ -85,6 +86,17 @@ GoRouter createRouter(AuthStatus authStatus) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 250),
+        ),
+      ),
+      GoRoute(
+        path: '/signup',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SignupPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },

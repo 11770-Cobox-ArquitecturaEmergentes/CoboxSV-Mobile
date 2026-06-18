@@ -35,6 +35,31 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, UserEntity>> signup({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+  }) async {
+    try {
+      final response = await remoteDataSource.signup(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+      );
+      await localDataSource.saveTokens(
+        response.accessToken,
+        response.refreshToken,
+      );
+      await localDataSource.saveUser(response.user);
+      return Right(_userModelToEntity(response.user));
+    } on Exception catch (e) {
+      return Left(handleException(e));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> logout() async {
     try {
       await remoteDataSource.logout();

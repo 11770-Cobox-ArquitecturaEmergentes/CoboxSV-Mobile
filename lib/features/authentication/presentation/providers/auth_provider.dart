@@ -6,12 +6,16 @@ import 'package:cobox_sv_mobile/core/errors/failures.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/entities/user_entity.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/repository/auth_repository.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/usecases/login_usecase.dart';
+import 'package:cobox_sv_mobile/features/authentication/domain/usecases/signup_usecase.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/usecases/logout_usecase.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/usecases/get_current_user_usecase.dart';
 import 'package:cobox_sv_mobile/features/authentication/domain/usecases/forgot_password_usecase.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/datasource/auth_remote_datasource.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/datasource/auth_local_datasource.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/repository/auth_repository_impl.dart';
+import 'package:cobox_sv_mobile/features/authentication/data/repository/mock_auth_repository_impl.dart';
+
+final useMockApiProvider = StateProvider<bool>((ref) => true);
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSource(dioClient: ref.watch(dioClientProvider));
@@ -22,6 +26,8 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
 });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  final useMock = ref.watch(useMockApiProvider);
+  if (useMock) return MockAuthRepositoryImpl();
   return AuthRepositoryImpl(
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     localDataSource: ref.watch(authLocalDataSourceProvider),
@@ -30,6 +36,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final loginUseCaseProvider = Provider<LoginUseCase>((ref) {
   return LoginUseCase(repository: ref.watch(authRepositoryProvider));
+});
+
+final signupUseCaseProvider = Provider<SignupUseCase>((ref) {
+  return SignupUseCase(repository: ref.watch(authRepositoryProvider));
 });
 
 final logoutUseCaseProvider = Provider<LogoutUseCase>((ref) {
@@ -67,44 +77,86 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final LoginUseCase _loginUseCase;
+  final SignupUseCase _signupUseCase;
   final LogoutUseCase _logoutUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
 
   AuthNotifier({
     required LoginUseCase loginUseCase,
+    required SignupUseCase signupUseCase,
     required LogoutUseCase logoutUseCase,
     required GetCurrentUserUseCase getCurrentUserUseCase,
   })  : _loginUseCase = loginUseCase,
+        _signupUseCase = signupUseCase,
         _logoutUseCase = logoutUseCase,
         _getCurrentUserUseCase = getCurrentUserUseCase,
-        super(const AuthState(type: AuthStateType.loading));
+        super(const AuthState(type: AuthStateType.unauthenticated));
 
   Future<void> login(String email, String password) async {
     state = const AuthState(type: AuthStateType.loading);
-    final result = await _loginUseCase(
-      LoginParams(email: email, password: password),
-    );
-    switch (result) {
-      case Left(value: final Failure failure):
-        state = AuthState.error(failure.message);
-      case Right(value: final UserEntity user):
-        state = AuthState.authenticated(user);
+    try {
+      final result = await _loginUseCase(
+        LoginParams(email: email, password: password),
+      );
+      switch (result) {
+        case Left(value: final Failure failure):
+          state = AuthState.error(failure.message);
+        case Right(value: final UserEntity user):
+          state = AuthState.authenticated(user);
+      }
+    } catch (e) {
+      state = AuthState.error('Error inesperado al iniciar sesión');
+    }
+  }
+
+  Future<void> signup({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+  }) async {
+    state = const AuthState(type: AuthStateType.loading);
+    try {
+      final result = await _signupUseCase(
+        SignupParams(
+          name: name,
+          email: email,
+          password: password,
+          phone: phone,
+        ),
+      );
+      switch (result) {
+        case Left(value: final Failure failure):
+          state = AuthState.error(failure.message);
+        case Right(value: final UserEntity user):
+          state = AuthState.authenticated(user);
+      }
+    } catch (e) {
+      state = AuthState.error('Error inesperado al registrarse');
     }
   }
 
   Future<void> logout() async {
-    await _logoutUseCase();
+    try {
+      await _logoutUseCase();
+    } catch (_) {
+      // Continue with local cleanup even if remote logout fails
+    }
     state = const AuthState(type: AuthStateType.unauthenticated);
   }
 
   Future<void> checkAuth() async {
     state = const AuthState(type: AuthStateType.loading);
-    final result = await _getCurrentUserUseCase();
-    switch (result) {
-      case Left():
-        state = const AuthState(type: AuthStateType.unauthenticated);
-      case Right(value: final UserEntity user):
-        state = AuthState.authenticated(user);
+    try {
+      final result = await _getCurrentUserUseCase();
+      switch (result) {
+        case Left():
+          state = const AuthState(type: AuthStateType.unauthenticated);
+        case Right(value: final UserEntity user):
+          state = AuthState.authenticated(user);
+      }
+    } catch (_) {
+      state = const AuthState(type: AuthStateType.unauthenticated);
     }
   }
 }
@@ -113,6 +165,7 @@ final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     loginUseCase: ref.watch(loginUseCaseProvider),
+    signupUseCase: ref.watch(signupUseCaseProvider),
     logoutUseCase: ref.watch(logoutUseCaseProvider),
     getCurrentUserUseCase: ref.watch(getCurrentUserUseCaseProvider),
   );

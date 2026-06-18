@@ -17,6 +17,26 @@ class AuthRemoteDataSource {
     return AuthResponseModel.fromJson(result);
   }
 
+  Future<AuthResponseModel> signup({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+  }) async {
+    final response = await _dioClient.post(
+      Endpoints.register,
+      data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'phone': phone,
+      },
+    );
+    final data = response.data as Map<String, dynamic>;
+    final result = (data['data'] ?? data) as Map<String, dynamic>;
+    return AuthResponseModel.fromJson(result);
+  }
+
   Future<void> logout() async {
     await _dioClient.post(Endpoints.logout);
   }

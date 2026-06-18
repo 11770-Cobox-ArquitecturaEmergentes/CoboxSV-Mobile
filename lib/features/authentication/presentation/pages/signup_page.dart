@@ -9,31 +9,39 @@ import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
 import 'package:cobox_sv_mobile/core/widgets/app_button.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
-class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+class SignupPage extends ConsumerStatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  ConsumerState<LoginPage> createState() => _LoginPageState();
+  ConsumerState<SignupPage> createState() => _SignupPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> {
+class _SignupPageState extends ConsumerState<SignupPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _onLogin() async {
+  Future<void> _onSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref.read(authNotifierProvider.notifier).login(
-          _emailController.text.trim(),
-          _passwordController.text,
+    await ref.read(authNotifierProvider.notifier).signup(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          phone: _phoneController.text.trim(),
         );
 
     final authState = ref.read(authNotifierProvider);
@@ -44,7 +52,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(authState.error ?? 'Error desconocido'),
+              content: Text(authState.error ?? 'Error al registrarse'),
               backgroundColor: AppColors.danger,
             ),
           );
@@ -61,7 +69,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final size = MediaQuery.of(context).size;
     final colorScheme = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final availableHeight = size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom;
+    final availableHeight = size.height -
+        MediaQuery.of(context).padding.top -
+        MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -85,35 +95,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const SizedBox(height: 48),
-                  // Logo and branding
+                  const SizedBox(height: 40),
                   const Icon(
                     Icons.local_shipping_rounded,
-                    size: 80,
+                    size: 64,
                     color: Colors.white,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    'CoBox SV',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    'Crear Cuenta',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
-                    'Transporte logístico profesional',
+                    'Regístrate en CoBox SV',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.white70,
                         ),
                   ),
-                  const SizedBox(height: 32),
-                  // Login form
+                  const SizedBox(height: 24),
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
-                      vertical: 32,
+                      vertical: 28,
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
@@ -132,47 +143,78 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Iniciar Sesión',
+                            'Registro',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
+                          AppTextfield(
+                            controller: _nameController,
+                            label: 'Nombre completo',
+                            hint: 'Ingrese su nombre',
+                            prefixIcon:
+                                const Icon(Icons.person_outline),
+                            keyboardType: TextInputType.name,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization:
+                                TextCapitalization.words,
+                            validator: validateName,
+                          ),
+                          const SizedBox(height: 14),
                           AppTextfield(
                             controller: _emailController,
                             label: 'Correo electrónico',
                             hint: 'ejemplo@correo.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            prefixIcon:
+                                const Icon(Icons.email_outlined),
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             validator: validateEmail,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
+                          AppTextfield(
+                            controller: _phoneController,
+                            label: 'Teléfono',
+                            hint: '+54 11 1234-5678',
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                            keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
+                            validator: validatePhone,
+                          ),
+                          const SizedBox(height: 14),
                           AppTextfield(
                             controller: _passwordController,
                             label: 'Contraseña',
-                            hint: 'Ingrese su contraseña',
-                            prefixIcon: const Icon(Icons.lock_outlined),
+                            hint: 'Mínimo 8 caracteres',
+                            prefixIcon:
+                                const Icon(Icons.lock_outlined),
+                            obscureText: true,
+                            textInputAction: TextInputAction.next,
+                            validator: validatePassword,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextfield(
+                            controller: _confirmPasswordController,
+                            label: 'Confirmar contraseña',
+                            hint: 'Repita la contraseña',
+                            prefixIcon:
+                                const Icon(Icons.lock_outlined),
                             obscureText: true,
                             textInputAction: TextInputAction.done,
-                            validator: validatePassword,
-                            onSubmitted: (_) => _onLogin(),
+                            validator: (value) {
+                              if (value != _passwordController.text) {
+                                return 'Las contraseñas no coinciden';
+                              }
+                              return null;
+                            },
+                            onSubmitted: (_) => _onSignup(),
                           ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                context.push('/forgot-password');
-                              },
-                              child: const Text('¿Olvidaste tu contraseña?'),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           AppButton(
-                            label: 'Iniciar Sesión',
-                            onPressed: _onLogin,
+                            label: 'Crear Cuenta',
+                            onPressed: _onSignup,
                             loading: isLoading,
                             fullWidth: true,
                             size: AppButtonSize.large,
@@ -186,14 +228,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '¿No tienes cuenta? ',
+                        '¿Ya tienes cuenta? ',
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium
                             ?.copyWith(color: Colors.white70),
                       ),
                       TextButton(
-                        onPressed: () => context.go('/signup'),
+                        onPressed: () => context.go('/login'),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
@@ -201,13 +243,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text(
-                          'Regístrate',
+                          'Inicia sesión',
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: bottomInset > 0 ? 24 : 48),
+                  SizedBox(height: bottomInset > 0 ? 16 : 24),
                 ],
               ),
             ),
