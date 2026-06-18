@@ -1,0 +1,96 @@
+name: cobox_sv_mobile
+description: "CoBox Mobile - Professional logistics transport application"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Networking
+  dio: ^5.7.0
+
+  # Code Generation
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Storage
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.3.5
+
+  # UI & Media
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.17
+  lottie: ^3.3.1
+  shimmer: ^3.0.0
+
+  # Utilities
+  flutter_hooks: ^0.20.5
+  intl: ^0.20.2
+  equatable: ^2.0.7
+  logger: ^2.5.0
+  connectivity_plus: ^6.1.2
+  firebase_core: ^3.12.1
+  firebase_messaging: ^15.2.4
+  flutter_local_notifications: ^18.0.1
+  image_picker: ^1.1.2
+  geolocator: ^13.0.2
+  google_maps_flutter: ^2.10.1
+  url_launcher: ^6.3.1
+  permission_handler: ^11.3.1
+  flutter_native_splash: ^2.4.4
+  flutter_launcher_icons: ^0.14.3
+  package_info_plus: ^8.3.0
+  device_info_plus: ^11.3.3
+  dio_cache_interceptor: ^3.5.1
+  dio_cache_interceptor_db_store: ^5.1.0
+
+  # Functional Programming
+  dartz: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  freezed: ^3.1.0
+  json_serializable: ^6.9.4
+  riverpod_generator: ^2.6.3
+  riverpod_lint: ^2.6.5
+  mockito: ^5.4.6
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+
+
+
+flutter_native_splash:
+  color: "#1A73E8"
+  image: assets/images/splash_logo.png
+  android: true
+  ios: true
+  web: false
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/app_icon.png
