@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/utils/validators.dart';
-import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
-import 'package:cobox_sv_mobile/core/widgets/app_button.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
+
+enum _LoginUserType { supervisor, conductor }
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -20,6 +19,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  _LoginUserType _selectedUserType = _LoginUserType.supervisor;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyDemoCredentials(_selectedUserType);
+  }
 
   @override
   void dispose() {
@@ -40,6 +46,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     switch (authState.type) {
       case AuthStateType.authenticated:
         ref.read(authStatusProvider.notifier).state = AuthStatus.authenticated;
+        break;
       case AuthStateType.error:
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -49,169 +56,548 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           );
         }
+        break;
       default:
         break;
     }
+  }
+
+  void _selectUserType(_LoginUserType userType) {
+    setState(() {
+      _selectedUserType = userType;
+    });
+    _applyDemoCredentials(userType);
+  }
+
+  Future<void> _loginWithDemo(_LoginUserType userType) async {
+    _selectUserType(userType);
+    await _onLogin();
+  }
+
+  void _applyDemoCredentials(_LoginUserType userType) {
+    switch (userType) {
+      case _LoginUserType.supervisor:
+        _emailController.text = 'supervisor@cobox.com';
+        break;
+      case _LoginUserType.conductor:
+        _emailController.text = 'conductor@cobox.com';
+        break;
+    }
+    _passwordController.text = 'Demo123!';
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.type == AuthStateType.loading;
-    final size = MediaQuery.of(context).size;
-    final colorScheme = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final availableHeight = size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: availableHeight,
-            ),
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.primary,
-                    Color(0xFF1557B0),
-                  ],
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  const SizedBox(height: 48),
-                  // Logo and branding
-                  const Icon(
-                    Icons.local_shipping_rounded,
-                    size: 80,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'CoBox SV',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 24, 20, 24 + bottomInset),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 390),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withValues(alpha: 0.08),
+                                blurRadius: 28,
+                                offset: const Offset(0, 18),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _LoginHeader(textTheme: textTheme),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(26, 24, 26, 28),
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Selecciona tu tipo de usuario',
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.gray500,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _UserTypeCard(
+                                              title: 'Supervisor',
+                                              subtitle: 'de Flota',
+                                              icon: Icons.person_outline_rounded,
+                                              selected: _selectedUserType ==
+                                                  _LoginUserType.supervisor,
+                                              onTap: () => _selectUserType(
+                                                _LoginUserType.supervisor,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _UserTypeCard(
+                                              title: 'Conductor',
+                                              subtitle: 'de Flota',
+                                              icon: Icons.local_shipping_outlined,
+                                              selected: _selectedUserType ==
+                                                  _LoginUserType.conductor,
+                                              onTap: () => _selectUserType(
+                                                _LoginUserType.conductor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 22),
+                                      _LoginField(
+                                        label: 'Correo electronico',
+                                        hintText: _selectedUserType ==
+                                                _LoginUserType.supervisor
+                                            ? 'supervisor@cobox.com'
+                                            : 'conductor@cobox.com',
+                                        controller: _emailController,
+                                        keyboardType: TextInputType.emailAddress,
+                                        textInputAction: TextInputAction.next,
+                                        validator: validateEmail,
+                                        prefixIcon: Icons.person_outline_rounded,
+                                      ),
+                                      const SizedBox(height: 14),
+                                      _LoginField(
+                                        label: 'Contrasena',
+                                        hintText: 'Ingresa tu contrasena',
+                                        controller: _passwordController,
+                                        obscureText: true,
+                                        textInputAction: TextInputAction.done,
+                                        validator: validatePassword,
+                                        prefixIcon: Icons.lock_outline_rounded,
+                                        onSubmitted: (_) => _onLogin(),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _PrimaryActionButton(
+                                        label: 'Iniciar sesion',
+                                        isLoading: isLoading,
+                                        onPressed: _onLogin,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      const Divider(
+                                        color: Color(0xFFE2E8F0),
+                                        thickness: 1,
+                                      ),
+                                      const SizedBox(height: 18),
+                                      Center(
+                                        child: Text(
+                                          'Acceso rapido de demostracion',
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            color: AppColors.gray500,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _DemoButton(
+                                              label: 'Demo Supervisor',
+                                              onTap: () => _loginWithDemo(
+                                                _LoginUserType.supervisor,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _DemoButton(
+                                              label: 'Demo Conductor',
+                                              onTap: () => _loginWithDemo(
+                                                _LoginUserType.conductor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Transporte logístico profesional',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white70,
-                        ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Login form
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 32,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                        const SizedBox(height: 18),
+                        Text(
+                          '(c) 2026 CoBox SmartVision. Todos los derechos',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.gray500,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Iniciar Sesión',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 24),
-                          AppTextfield(
-                            controller: _emailController,
-                            label: 'Correo electrónico',
-                            hint: 'ejemplo@correo.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            validator: validateEmail,
-                          ),
-                          const SizedBox(height: 16),
-                          AppTextfield(
-                            controller: _passwordController,
-                            label: 'Contraseña',
-                            hint: 'Ingrese su contraseña',
-                            prefixIcon: const Icon(Icons.lock_outlined),
-                            obscureText: true,
-                            textInputAction: TextInputAction.done,
-                            validator: validatePassword,
-                            onSubmitted: (_) => _onLogin(),
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                context.push('/forgot-password');
-                              },
-                              child: const Text('¿Olvidaste tu contraseña?'),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          AppButton(
-                            label: 'Iniciar Sesión',
-                            onPressed: _onLogin,
-                            loading: isLoading,
-                            fullWidth: true,
-                            size: AppButtonSize.large,
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '¿No tienes cuenta? ',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: Colors.white70),
-                      ),
-                      TextButton(
-                        onPressed: () => context.go('/signup'),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          'Regístrate',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: bottomInset > 0 ? 24 : 48),
-                ],
+                ),
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginHeader extends StatelessWidget {
+  const _LoginHeader({required this.textTheme});
+
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 26, 24, 30),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            AppColors.secondary,
+            AppColors.primary,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 74,
+            height: 74,
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.local_shipping_outlined,
+              color: AppColors.white,
+              size: 36,
             ),
           ),
+          const SizedBox(height: 18),
+          Text(
+            'CoBox SmartVision',
+            style: textTheme.headlineSmall?.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.w800,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sistema de Gestion Logistica',
+            style: textTheme.bodyLarge?.copyWith(
+              color: AppColors.white.withValues(alpha: 0.92),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UserTypeCard extends StatelessWidget {
+  const _UserTypeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          height: 118,
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF3FAF8) : AppColors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected ? AppColors.secondary : const Color(0xFFD9E2EC),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.secondary : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: selected ? AppColors.white : AppColors.gray700,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.gray500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginField extends StatefulWidget {
+  const _LoginField({
+    required this.label,
+    required this.hintText,
+    required this.controller,
+    required this.prefixIcon,
+    this.keyboardType,
+    this.textInputAction,
+    this.validator,
+    this.obscureText = false,
+    this.onSubmitted,
+  });
+
+  final String label;
+  final String hintText;
+  final TextEditingController controller;
+  final IconData prefixIcon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final FormFieldValidator<String>? validator;
+  final bool obscureText;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  State<_LoginField> createState() => _LoginFieldState();
+}
+
+class _LoginFieldState extends State<_LoginField> {
+  late bool _obscure;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscure = widget.obscureText;
+  }
+
+  @override
+  void didUpdateWidget(covariant _LoginField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.obscureText != widget.obscureText) {
+      _obscure = widget.obscureText;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: widget.controller,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          validator: widget.validator,
+          obscureText: _obscure,
+          onFieldSubmitted: widget.onSubmitted,
+          style: textTheme.bodyLarge?.copyWith(color: AppColors.text),
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            filled: true,
+            fillColor: AppColors.white,
+            prefixIcon: Icon(
+              widget.prefixIcon,
+              color: AppColors.gray400,
+              size: 20,
+            ),
+            suffixIcon: widget.obscureText
+                ? IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscure = !_obscure;
+                      });
+                    },
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: AppColors.gray400,
+                      size: 20,
+                    ),
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            hintStyle: textTheme.bodyLarge?.copyWith(
+              color: AppColors.gray400,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFD9E2EC)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppColors.secondary,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.danger),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrimaryActionButton extends StatelessWidget {
+  const _PrimaryActionButton({
+    required this.label,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : onPressed,
+        icon: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                ),
+              )
+            : const Icon(Icons.arrow_forward_rounded, size: 18),
+        label: Text(
+          label,
+          style: textTheme.titleSmall?.copyWith(
+            color: AppColors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.secondary,
+          foregroundColor: AppColors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          disabledBackgroundColor: AppColors.secondary.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
+}
+
+class _DemoButton extends StatelessWidget {
+  const _DemoButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.text,
+        backgroundColor: const Color(0xFFF8FAFC),
+        side: const BorderSide(color: Color(0xFFD9E2EC)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        label,
+        style: textTheme.labelLarge?.copyWith(
+          color: AppColors.text,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

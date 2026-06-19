@@ -48,17 +48,19 @@ class OrderRemoteDataSource {
     String? signature,
     List<String>? photoUrls,
   }) async {
-    final body = <String, dynamic>{
-      'status': status,
-    };
+    final body = <String, dynamic>{};
     if (notes != null) body['notes'] = notes;
     if (signature != null) body['signature'] = signature;
     if (photoUrls != null && photoUrls.isNotEmpty) body['photoUrls'] = photoUrls;
 
-    final response = await _client.patch(
-      '${Endpoints.orders}/$id/status',
-      data: body,
-    );
+    final endpoint = switch (status) {
+      'completed' => '${Endpoints.orders}/$id/completed',
+      'in_progress' => '${Endpoints.orders}/$id/in-transit',
+      'assigned' => '${Endpoints.orders}/$id/ready-for-dispatch',
+      _ => '${Endpoints.orders}/$id',
+    };
+
+    final response = await _client.patch(endpoint, data: body);
     final data = response.data as Map<String, dynamic>;
     final orderData = data['data'] as Map<String, dynamic>? ?? data;
     return OrderModel.fromJson(orderData);

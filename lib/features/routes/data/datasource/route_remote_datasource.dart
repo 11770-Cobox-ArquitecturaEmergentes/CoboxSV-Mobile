@@ -50,8 +50,8 @@ class RouteRemoteDataSource {
   }
 
   Future<RouteModel> startRoute(String id) async {
-    final response = await _dio.post(
-      '${Endpoints.startRoute}$id/start',
+    final response = await _dio.patch(
+      '${Endpoints.startRoute}$id/in-progress',
     );
 
     final apiResponse = ApiResponse<Map<String, dynamic>>.fromJson(
@@ -68,7 +68,8 @@ class RouteRemoteDataSource {
 
   Future<RouteModel> completeStop(String routeId, String stopId) async {
     final response = await _dio.post(
-      '${Endpoints.completeStop}$stopId/complete',
+      '${Endpoints.routeDetail}$routeId/delivered-orders',
+      data: {'orderId': int.tryParse(stopId)},
     );
 
     final apiResponse = ApiResponse<Map<String, dynamic>>.fromJson(

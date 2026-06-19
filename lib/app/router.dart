@@ -25,7 +25,10 @@ import 'package:cobox_sv_mobile/shared/widgets/bottom_nav_bar.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
-GoRouter createRouter(Ref ref) {
+GoRouter createRouter(
+  Ref ref, {
+  Listenable? refreshListenable,
+}) {
   // ignore: no_leading_underscores_for_local_identifiers
   final mockVehicle = VehicleEntity(
     id: '1',
@@ -58,6 +61,7 @@ GoRouter createRouter(Ref ref) {
   return GoRouter(
     initialLocation: '/login',
     debugLogDiagnostics: false,
+    refreshListenable: refreshListenable,
     redirect: (context, state) {
       final authStatus = ref.read(authStatusProvider);
       final loggedIn = authStatus == AuthStatus.authenticated;
