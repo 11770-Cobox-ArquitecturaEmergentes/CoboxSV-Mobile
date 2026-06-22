@@ -7,7 +7,9 @@ import 'package:cobox_sv_mobile/features/planning/domain/usecases/get_plans_usec
 import 'package:cobox_sv_mobile/features/planning/domain/usecases/get_plan_detail_usecase.dart';
 import 'package:cobox_sv_mobile/features/planning/data/datasource/planning_local_datasource.dart';
 import 'package:cobox_sv_mobile/features/planning/data/datasource/planning_remote_datasource.dart';
+import 'package:cobox_sv_mobile/features/planning/data/repository/mock_planning_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/planning/data/repository/planning_repository_impl.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
 final planningRemoteDataSourceProvider = Provider<PlanningRemoteDataSource>((ref) {
   return PlanningRemoteDataSource(ref.watch(dioClientProvider));
@@ -18,6 +20,9 @@ final planningLocalDataSourceProvider = Provider<PlanningLocalDataSource>((ref) 
 });
 
 final planningRepositoryProvider = Provider<PlanningRepository>((ref) {
+  if (ref.watch(useMockApiProvider)) {
+    return const MockPlanningRepositoryImpl();
+  }
   return PlanningRepositoryImpl(
     ref.watch(planningRemoteDataSourceProvider),
     ref.watch(planningLocalDataSourceProvider),
