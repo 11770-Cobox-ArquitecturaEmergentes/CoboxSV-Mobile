@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/errors/failures.dart';
 import 'package:cobox_sv_mobile/core/errors/error_handler.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/incidents/data/datasource/incident_remote_datasource.dart';
+import 'package:cobox_sv_mobile/features/incidents/data/repository/mock_incident_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/incidents/data/repository/incident_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/repository/incident_repository.dart';
@@ -15,6 +17,9 @@ final incidentRemoteDataSourceProvider = Provider<IncidentRemoteDataSource>((ref
 });
 
 final incidentRepositoryProvider = Provider<IncidentRepository>((ref) {
+  if (ref.watch(useMockApiProvider)) {
+    return MockIncidentRepositoryImpl();
+  }
   return IncidentRepositoryImpl(ref.watch(incidentRemoteDataSourceProvider));
 });
 

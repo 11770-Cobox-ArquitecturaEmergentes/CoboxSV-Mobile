@@ -6,11 +6,13 @@ import 'package:cobox_sv_mobile/core/errors/failures.dart';
 import 'package:cobox_sv_mobile/features/home/data/datasource/home_local_datasource.dart';
 import 'package:cobox_sv_mobile/features/home/data/datasource/home_remote_datasource.dart';
 import 'package:cobox_sv_mobile/features/home/data/repository/home_repository_impl.dart';
+import 'package:cobox_sv_mobile/features/home/data/repository/mock_home_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/home/domain/entities/activity.dart';
 import 'package:cobox_sv_mobile/features/home/domain/entities/dashboard.dart';
 import 'package:cobox_sv_mobile/features/home/domain/repository/home_repository.dart';
 import 'package:cobox_sv_mobile/features/home/domain/usecases/get_dashboard.dart';
 import 'package:cobox_sv_mobile/features/home/domain/usecases/get_recent_activity.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
   return HomeRemoteDataSource(ref.watch(dioClientProvider));
@@ -21,6 +23,9 @@ final homeLocalDataSourceProvider = Provider<HomeLocalDataSource>((ref) {
 });
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
+  if (ref.watch(useMockApiProvider)) {
+    return const MockHomeRepositoryImpl();
+  }
   return HomeRepositoryImpl(
     remoteDataSource: ref.watch(homeRemoteDataSourceProvider),
     localDataSource: ref.watch(homeLocalDataSourceProvider),
