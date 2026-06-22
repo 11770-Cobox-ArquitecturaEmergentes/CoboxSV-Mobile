@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
@@ -46,6 +47,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     switch (authState.type) {
       case AuthStateType.authenticated:
         ref.read(authStatusProvider.notifier).state = AuthStatus.authenticated;
+        if (mounted) {
+          context.go(
+            _selectedUserType == _LoginUserType.supervisor
+                ? '/supervisor/dashboard'
+                : '/home',
+          );
+        }
         break;
       case AuthStateType.error:
         if (mounted) {
