@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobox_sv_mobile/core/errors/failures.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/profile/data/datasource/profile_remote_datasource.dart';
+import 'package:cobox_sv_mobile/features/profile/data/repository/mock_profile_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/profile/data/repository/profile_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/entities/profile_entity.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/repository/profile_repository.dart';
@@ -12,6 +14,9 @@ import 'package:cobox_sv_mobile/features/profile/domain/usecases/upload_photo_us
 import 'package:cobox_sv_mobile/app/providers.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  if (ref.watch(useMockApiProvider)) {
+    return MockProfileRepositoryImpl();
+  }
   final client = ref.watch(dioClientProvider);
   final networkInfo = ref.watch(networkInfoProvider);
   return ProfileRepositoryImpl(

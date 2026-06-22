@@ -1,25 +1,26 @@
 class Endpoints {
   static const String baseUrl = 'https://api.coboxsv.com/api/v1';
 
-  static const String login = '/auth/login';
-  static const String register = '/auth/register';
+  static const String login = '/authentication/sign-in';
+  static const String register = '/authentication/sign-up';
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
   static const String changePassword = '/auth/change-password';
 
-  static const String dashboard = '/dashboard';
-  static const String recentActivity = '/dashboard/recent-activity';
+  static const String dashboard = '/drivers/{driverId}/dashboard';
+  static const String recentActivity = '/drivers/{driverId}/activity';
 
-  static const String plans = '/plans';
-  static const String planDetail = '/plans/';
+  static const String plans = '/drivers/{driverId}/plans';
+  static const String planDetail = '/drivers/{driverId}/plans/';
 
   static const String routes = '/routes';
   static const String routeDetail = '/routes/';
+  static const String driverRoutes = '/drivers/{driverId}/routes';
   static const String routeStops = '/routes/';
   static const String startRoute = '/routes/';
-  static const String completeStop = '/routes/stops/';
+  static const String completeStop = '/routes/';
 
   static const String orders = '/orders';
   static const String orderDetail = '/orders/';

@@ -21,11 +21,15 @@ import 'package:cobox_sv_mobile/features/profile/presentation/pages/profile_page
 import 'package:cobox_sv_mobile/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:cobox_sv_mobile/features/profile/presentation/pages/vehicle_info_page.dart';
 import 'package:cobox_sv_mobile/features/profile/presentation/pages/change_password_page.dart';
+import 'package:cobox_sv_mobile/features/supervisor/presentation/pages/supervisor_dashboard_page.dart';
 import 'package:cobox_sv_mobile/shared/widgets/bottom_nav_bar.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
-GoRouter createRouter(Ref ref) {
+GoRouter createRouter(
+  Ref ref, {
+  Listenable? refreshListenable,
+}) {
   // ignore: no_leading_underscores_for_local_identifiers
   final mockVehicle = VehicleEntity(
     id: '1',
@@ -58,6 +62,7 @@ GoRouter createRouter(Ref ref) {
   return GoRouter(
     initialLocation: '/login',
     debugLogDiagnostics: false,
+    refreshListenable: refreshListenable,
     redirect: (context, state) {
       final authStatus = ref.read(authStatusProvider);
       final loggedIn = authStatus == AuthStatus.authenticated;
@@ -68,7 +73,7 @@ GoRouter createRouter(Ref ref) {
       if (!loggedIn && !isLogin && !isSignup) {
         return '/login';
       }
-      if (loggedIn && (isLogin || isSignup)) {
+      if (loggedIn && isSignup) {
         return '/home';
       }
       return null;
@@ -101,6 +106,13 @@ GoRouter createRouter(Ref ref) {
             return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: const Duration(milliseconds: 250),
+        ),
+      ),
+      GoRoute(
+        path: '/supervisor/dashboard',
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const SupervisorDashboardPage(),
         ),
       ),
       StatefulShellRoute.indexedStack(
