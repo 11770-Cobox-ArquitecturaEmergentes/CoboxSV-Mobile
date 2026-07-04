@@ -23,17 +23,17 @@ class _StatusUpdateBottomSheetState extends State<StatusUpdateBottomSheet> {
   List<OrderStatus> get _availableStatuses {
     switch (widget.currentStatus) {
       case OrderStatus.pending:
-        return [OrderStatus.assigned, OrderStatus.cancelled];
+        return [OrderStatus.assigned];
       case OrderStatus.assigned:
-        return [OrderStatus.inProgress, OrderStatus.cancelled, OrderStatus.onHold];
-      case OrderStatus.inProgress:
-        return [OrderStatus.completed, OrderStatus.onHold, OrderStatus.cancelled];
-      case OrderStatus.completed:
         return [OrderStatus.inProgress];
+      case OrderStatus.inProgress:
+        return const <OrderStatus>[];
+      case OrderStatus.completed:
+        return const <OrderStatus>[];
       case OrderStatus.cancelled:
-        return [OrderStatus.pending];
+        return const <OrderStatus>[];
       case OrderStatus.onHold:
-        return [OrderStatus.inProgress, OrderStatus.cancelled];
+        return const <OrderStatus>[];
     }
   }
 

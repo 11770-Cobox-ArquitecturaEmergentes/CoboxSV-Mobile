@@ -56,9 +56,10 @@ class _OrdersPageState extends ConsumerState<OrdersPage> {
                         final nextStatus = switch (state.orders[index].status) {
                           OrderStatus.pending => OrderStatus.inProgress,
                           OrderStatus.assigned => OrderStatus.inProgress,
-                          OrderStatus.inProgress => OrderStatus.completed,
+                          OrderStatus.inProgress => OrderStatus.inProgress,
                           _ => state.orders[index].status,
                         };
+                        if (nextStatus == state.orders[index].status) return;
                         await notifier.updateStatus(
                           id: state.orders[index].id,
                           status: nextStatus,
@@ -121,7 +122,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            'Backend sincronizado',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -269,7 +270,7 @@ class _OrderCard extends StatelessWidget {
     final accent = _accentColor(order.status);
     final actionLabel = switch (order.status) {
       OrderStatus.completed => null,
-      OrderStatus.inProgress => 'Confirmar entrega',
+      OrderStatus.inProgress => null,
       OrderStatus.pending || OrderStatus.assigned => 'Iniciar entrega',
       _ => null,
     };

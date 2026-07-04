@@ -23,8 +23,19 @@ class AuthResponseModel {
     required this.expiresAt,
   });
 
-  factory AuthResponseModel.fromJson(Map<String, dynamic> json) =>
-      _$AuthResponseModelFromJson(json);
+  factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
+    return AuthResponseModel(
+      accessToken: (json['accessToken'] ?? json['token'] ?? '').toString(),
+      refreshToken: (json['refreshToken'] ?? '').toString(),
+      user: UserModel.fromJson(json),
+      expiresAt: DateTime.now().add(const Duration(days: 7)),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$AuthResponseModelToJson(this);
+  Map<String, dynamic> toJson() => {
+        'accessToken': accessToken,
+        'refreshToken': refreshToken,
+        'expiresAt': expiresAt.toIso8601String(),
+        ...user.toJson(),
+      };
 }

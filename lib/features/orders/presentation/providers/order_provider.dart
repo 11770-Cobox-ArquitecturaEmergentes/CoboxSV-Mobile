@@ -2,9 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobox_sv_mobile/core/errors/failures.dart';
 import 'package:cobox_sv_mobile/core/errors/error_handler.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
-import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/orders/data/datasource/order_remote_datasource.dart';
-import 'package:cobox_sv_mobile/features/orders/data/repository/mock_order_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/orders/data/repository/order_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/order_entity.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/repository/order_repository.dart';
@@ -18,9 +16,6 @@ final orderRemoteDataSourceProvider = Provider<OrderRemoteDataSource>((ref) {
 });
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  if (ref.watch(useMockApiProvider)) {
-    return MockOrderRepositoryImpl();
-  }
   return OrderRepositoryImpl(ref.watch(orderRemoteDataSourceProvider));
 });
 

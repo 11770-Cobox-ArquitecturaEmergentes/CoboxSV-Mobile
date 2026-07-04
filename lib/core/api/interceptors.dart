@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 
+import 'package:cobox_sv_mobile/app/constants.dart';
 import 'package:cobox_sv_mobile/core/api/endpoints.dart';
 import 'package:cobox_sv_mobile/core/errors/exceptions.dart';
 
@@ -24,10 +25,26 @@ class AuthInterceptor extends Interceptor {
   bool _isRefreshing = false;
   final List<_PendingRequest> _pendingRequests = [];
 
+  bool _isPublicAuthPath(String path) {
+    return path == Endpoints.login ||
+        path == Endpoints.register ||
+        path == Endpoints.refreshToken ||
+        path == Endpoints.forgotPassword ||
+        path == Endpoints.resetPassword;
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    if (_isPublicAuthPath(options.path)) {
+      options.headers.remove('Authorization');
+      handler.next(options);
+      return;
+    }
+
     try {
-      final token = await secureStorage.read(key: 'access_token');
+      final token = await secureStorage.read(
+        key: AppConstants.storageAuthToken,
+      );
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -42,6 +59,11 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
+    if (_isPublicAuthPath(err.requestOptions.path)) {
+      handler.next(err);
+      return;
+    }
+
     if (_isRefreshing) {
       _pendingRequests.add(_PendingRequest(options: err.requestOptions, handler: handler));
       return;
@@ -49,9 +71,12 @@ class AuthInterceptor extends Interceptor {
 
     _isRefreshing = true;
     try {
-      final refreshToken = await secureStorage.read(key: 'refresh_token');
+      final refreshToken = await secureStorage.read(
+        key: AppConstants.storageRefreshToken,
+      );
       if (refreshToken == null || refreshToken.isEmpty) {
-        throw UnauthorizedException('No refresh token available');
+        handler.next(err);
+        return;
       }
 
       final response = await dio.post(
@@ -66,8 +91,14 @@ class AuthInterceptor extends Interceptor {
 
       final newRefreshToken = response.data['refreshToken'] as String? ?? refreshToken;
 
-      await secureStorage.write(key: 'access_token', value: newToken);
-      await secureStorage.write(key: 'refresh_token', value: newRefreshToken);
+      await secureStorage.write(
+        key: AppConstants.storageAuthToken,
+        value: newToken,
+      );
+      await secureStorage.write(
+        key: AppConstants.storageRefreshToken,
+        value: newRefreshToken,
+      );
 
       final pending = List<_PendingRequest>.from(_pendingRequests);
       _pendingRequests.clear();
@@ -86,8 +117,8 @@ class AuthInterceptor extends Interceptor {
       final retryResponse = await dio.fetch(err.requestOptions);
       handler.resolve(retryResponse);
     } catch (e) {
-      await secureStorage.delete(key: 'access_token');
-      await secureStorage.delete(key: 'refresh_token');
+      await secureStorage.delete(key: AppConstants.storageAuthToken);
+      await secureStorage.delete(key: AppConstants.storageRefreshToken);
 
       final pending = List<_PendingRequest>.from(_pendingRequests);
       _pendingRequests.clear();

@@ -86,7 +86,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            'Backend sincronizado',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],

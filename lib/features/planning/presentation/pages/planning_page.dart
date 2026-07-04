@@ -1,88 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/features/routes/domain/entities/route_entity.dart';
+import 'package:cobox_sv_mobile/features/routes/presentation/providers/route_provider.dart';
 
-class PlanningPage extends StatefulWidget {
+class PlanningPage extends ConsumerWidget {
   const PlanningPage({super.key});
 
   @override
-  State<PlanningPage> createState() => _PlanningPageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final routesAsync = ref.watch(routesProvider(null));
 
-class _PlanningPageState extends State<PlanningPage> {
-  bool _hasCalculatedRoute = true;
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: const _DriverHeader(title: 'Planificar'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _TopPlanningCard(),
-            const SizedBox(height: 16),
-            _PlanningFormCard(
-              onCalculate: () {
-                setState(() {
-                  _hasCalculatedRoute = true;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            _MapPreviewCard(hasRoute: _hasCalculatedRoute),
-            const SizedBox(height: 16),
-            const _PlanningInfoCard(),
-            if (_hasCalculatedRoute) ...[
-              const SizedBox(height: 18),
-              const _RouteSummaryCard(),
-              const SizedBox(height: 14),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    'Rutas disponibles (3)',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.text,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const _RouteOptionCard(
-                title: 'Ruta Rapida',
-                distance: '24.5 km',
-                time: '28 min',
-                trafficTags: ['Trafico ligero'],
-                fuel: '\$450',
-                selected: true,
-                points: ['Inicio', 'Av. Libertador', 'Av. Cordoba'],
-              ),
-              const SizedBox(height: 12),
-              const _RouteOptionCard(
-                title: 'Ruta Economica',
-                distance: '26.8 km',
-                time: '35 min',
-                trafficTags: ['Trafico moderado'],
-                fuel: '\$420',
-                points: ['Inicio', 'Av. Belgrano', 'Av. Rivadavia'],
-              ),
-              const SizedBox(height: 12),
-              const _RouteOptionCard(
-                title: 'Autopista',
-                distance: '22.1 km',
-                time: '25 min',
-                trafficTags: ['Trafico pesado', 'Con peaje'],
-                fuel: '\$480',
-                points: ['Inicio', 'Autopista 25 de Mayo', 'Autopista Sur'],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.refresh(routesProvider(null).future);
+        },
+        child: routesAsync.when(
+          loading: () => const _LoadingRoutesView(),
+          error: (error, _) => ListView(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            children: [
+              const _TopPlanningCard(),
+              const SizedBox(height: 16),
+              _PlanningInfoCard(
+                title: 'No se pudieron cargar las rutas',
+                message: error.toString(),
               ),
             ],
-          ],
+          ),
+          data: (routes) => _PlanningContent(routes: routes),
         ),
       ),
     );
@@ -134,7 +85,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            'Rutas sincronizadas',
             style: textTheme.bodySmall?.copyWith(
               color: AppColors.gray500,
             ),
@@ -153,6 +104,79 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
         preferredSize: Size.fromHeight(1),
         child: Divider(height: 1, thickness: 1, color: Color(0xFFE5EAF1)),
       ),
+    );
+  }
+}
+
+class _PlanningContent extends StatelessWidget {
+  const _PlanningContent({required this.routes});
+
+  final List<RouteEntity> routes;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeRoute = routes.cast<RouteEntity?>().firstWhere(
+          (route) => route?.status == 'IN_PROGRESS',
+          orElse: () => null,
+        );
+    final plannedCount =
+        routes.where((route) => route.status == 'PLANNED').length;
+    final completedCount =
+        routes.where((route) => route.status == 'COMPLETED').length;
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      children: [
+        const _TopPlanningCard(),
+        const SizedBox(height: 16),
+        _PlanningInfoCard(
+          title: activeRoute != null ? 'Ruta en progreso' : 'Resumen operativo',
+          message: activeRoute != null
+              ? '${activeRoute.name} con ${activeRoute.stops.length} paradas.'
+              : 'Tienes ${routes.length} rutas registradas en el backend.',
+        ),
+        const SizedBox(height: 16),
+        _RouteSummaryCard(
+          activeCount: activeRoute == null ? 0 : 1,
+          plannedCount: plannedCount,
+          completedCount: completedCount,
+        ),
+        const SizedBox(height: 18),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Rutas disponibles (${routes.length})',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (routes.isEmpty)
+          const _EmptyRoutesCard()
+        else
+          for (final route in routes) ...[
+            _RouteOptionCard(route: route),
+            const SizedBox(height: 12),
+          ],
+      ],
+    );
+  }
+}
+
+class _LoadingRoutesView extends StatelessWidget {
+  const _LoadingRoutesView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: 180),
+        Center(child: CircularProgressIndicator()),
+      ],
     );
   }
 }
@@ -218,179 +242,14 @@ class _TopPlanningCard extends StatelessWidget {
   }
 }
 
-class _PlanningFormCard extends StatelessWidget {
-  const _PlanningFormCard({required this.onCalculate});
-
-  final VoidCallback onCalculate;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: _surfaceDecoration(),
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Origen',
-            style: textTheme.titleSmall?.copyWith(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const _InputBox(
-            icon: Icons.location_on_outlined,
-            iconColor: AppColors.gray500,
-            text: 'Ingresa direccion de origen',
-          ),
-          const SizedBox(height: 8),
-          const _SecondaryGhostButton(
-            icon: Icons.near_me_outlined,
-            label: 'Usar mi ubicacion actual',
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Destino',
-            style: textTheme.titleSmall?.copyWith(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const _InputBox(
-            icon: Icons.location_on_outlined,
-            iconColor: AppColors.danger,
-            text: 'Ingresa direccion de destino',
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onCalculate,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.alt_route_rounded, size: 18),
-              label: const Text('Calcular ruta optima'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapPreviewCard extends StatelessWidget {
-  const _MapPreviewCard({required this.hasRoute});
-
-  final bool hasRoute;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF1F8),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD9E2EC)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.open_in_full_rounded,
-                size: 18,
-                color: AppColors.gray500,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 150,
-            child: Center(
-              child: hasRoute ? const _MapRouteIllustration() : const _MapPlaceholder(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapPlaceholder extends StatelessWidget {
-  const _MapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(
-          Icons.location_on_outlined,
-          size: 64,
-          color: Color(0xFFA6B4C8),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Vista previa del mapa',
-          style: textTheme.titleMedium?.copyWith(
-            color: AppColors.gray500,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Ingresa los datos para calcular la ruta',
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.gray500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MapRouteIllustration extends StatelessWidget {
-  const _MapRouteIllustration();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: CustomPaint(
-        painter: _RoutePainter(),
-      ),
-    );
-  }
-}
-
 class _PlanningInfoCard extends StatelessWidget {
-  const _PlanningInfoCard();
+  const _PlanningInfoCard({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +273,7 @@ class _PlanningInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Planificacion inteligente',
+                  title,
                   style: textTheme.titleSmall?.copyWith(
                     color: Color(0xFF1D4ED8),
                     fontWeight: FontWeight.w700,
@@ -422,7 +281,7 @@ class _PlanningInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Nuestro sistema calculara automaticamente la ruta mas eficiente considerando trafico en tiempo real, peajes y consumo de combustible.',
+                  message,
                   style: textTheme.bodyMedium?.copyWith(
                     color: Color(0xFF1D4ED8),
                     height: 1.45,
@@ -438,7 +297,15 @@ class _PlanningInfoCard extends StatelessWidget {
 }
 
 class _RouteSummaryCard extends StatelessWidget {
-  const _RouteSummaryCard();
+  const _RouteSummaryCard({
+    required this.activeCount,
+    required this.plannedCount,
+    required this.completedCount,
+  });
+
+  final int activeCount;
+  final int plannedCount;
+  final int completedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +341,7 @@ class _RouteSummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ruta calculada',
+                      'Estado de rutas',
                       style: textTheme.titleLarge?.copyWith(
                         color: AppColors.white,
                         fontWeight: FontWeight.w700,
@@ -482,7 +349,7 @@ class _RouteSummaryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '08:24 p. m.',
+                      '$activeCount activas, $plannedCount planificadas',
                       style: textTheme.bodyMedium?.copyWith(
                         color: AppColors.white,
                       ),
@@ -491,7 +358,7 @@ class _RouteSummaryCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Nueva ruta',
+                '$completedCount completadas',
                 style: textTheme.bodyMedium?.copyWith(
                   color: AppColors.white,
                   fontWeight: FontWeight.w700,
@@ -508,17 +375,7 @@ class _RouteSummaryCard extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: const Column(
-              children: [
-                _MiniRouteMetric(
-                  icon: Icons.location_on_outlined,
-                  value: '321',
-                ),
-                SizedBox(height: 8),
-                _MiniRouteMetric(
-                  icon: Icons.near_me_outlined,
-                  value: '213',
-                ),
-              ],
+              children: [],
             ),
           ),
         ],
@@ -527,56 +384,19 @@ class _RouteSummaryCard extends StatelessWidget {
   }
 }
 
-class _MiniRouteMetric extends StatelessWidget {
-  const _MiniRouteMetric({
-    required this.icon,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.white, size: 16),
-        const SizedBox(width: 8),
-        Text(
-          value,
-          style: textTheme.bodyMedium?.copyWith(
-            color: AppColors.white,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _RouteOptionCard extends StatelessWidget {
-  const _RouteOptionCard({
-    required this.title,
-    required this.distance,
-    required this.time,
-    required this.trafficTags,
-    required this.fuel,
-    required this.points,
-    this.selected = false,
-  });
+  const _RouteOptionCard({required this.route});
 
-  final String title;
-  final String distance;
-  final String time;
-  final List<String> trafficTags;
-  final String fuel;
-  final List<String> points;
-  final bool selected;
+  final RouteEntity route;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final selected = route.status == 'IN_PROGRESS';
+    final tags = <String>[
+      _statusLabel(route.status),
+      '${route.stops.length} paradas',
+    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -622,7 +442,7 @@ class _RouteOptionCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                title,
+                route.name,
                 style: textTheme.titleLarge?.copyWith(
                   color: AppColors.text,
                   fontWeight: FontWeight.w700,
@@ -637,14 +457,16 @@ class _RouteOptionCard extends StatelessWidget {
                 child: _MetricBlock(
                   icon: Icons.near_me_outlined,
                   label: 'Distancia',
-                  value: distance,
+                  value: '${route.distance.toStringAsFixed(0)} km',
                 ),
               ),
               Expanded(
                 child: _MetricBlock(
                   icon: Icons.access_time_filled_rounded,
                   label: 'Tiempo',
-                  value: time,
+                  value: route.duration == null
+                      ? '-'
+                      : '${route.duration!.inMinutes} min',
                 ),
               ),
             ],
@@ -654,11 +476,11 @@ class _RouteOptionCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final tag in trafficTags) _TrafficTag(label: tag),
+              for (final tag in tags) _TrafficTag(label: tag),
               Padding(
                 padding: const EdgeInsets.only(left: 4, top: 6),
                 child: Text(
-                  'Combustible: $fuel',
+                  'Pedidos: ${route.orderIds.length}',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.gray500,
                   ),
@@ -688,9 +510,9 @@ class _RouteOptionCard extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      for (var i = 0; i < points.length; i++) ...[
-                        _PointChip(label: points[i]),
-                        if (i != points.length - 1) ...[
+                      for (var i = 0; i < route.stops.length; i++) ...[
+                        _PointChip(label: 'Pedido ${route.stops[i].orderId ?? route.stops[i].id}'),
+                        if (i != route.stops.length - 1) ...[
                           const SizedBox(width: 6),
                           const Icon(
                             Icons.near_me_outlined,
@@ -704,41 +526,12 @@ class _RouteOptionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Container(
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2E2E2E),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_left,
-                        color: AppColors.white,
-                        size: 14,
-                      ),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            width: 132,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFBDBDBD),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_right,
-                        color: AppColors.white,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                  ),
+                LinearProgressIndicator(
+                  value: route.progress,
+                  minHeight: 10,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  color: selected ? AppColors.secondary : AppColors.primary,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ],
             ),
@@ -747,7 +540,7 @@ class _RouteOptionCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () => context.go('/routes/${route.id}'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: selected ? AppColors.white : AppColors.text,
                 backgroundColor: selected ? AppColors.secondary : AppColors.white,
@@ -760,12 +553,12 @@ class _RouteOptionCard extends StatelessWidget {
                 ),
               ),
               icon: Icon(
-                Icons.check_circle_outline_rounded,
+                Icons.visibility_outlined,
                 size: 18,
                 color: selected ? AppColors.white : AppColors.text,
               ),
               label: Text(
-                'Seleccionar esta ruta',
+                selected ? 'Ver ruta activa' : 'Ver detalle',
                 style: textTheme.titleSmall?.copyWith(
                   color: selected ? AppColors.white : AppColors.text,
                   fontWeight: FontWeight.w700,
@@ -774,6 +567,25 @@ class _RouteOptionCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyRoutesCard extends StatelessWidget {
+  const _EmptyRoutesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _surfaceDecoration(),
+      padding: const EdgeInsets.all(18),
+      child: const Text(
+        'No hay rutas registradas para este conductor en el backend.',
+        style: TextStyle(
+          color: AppColors.gray500,
+          fontSize: 15,
+        ),
       ),
     );
   }
@@ -836,9 +648,10 @@ class _TrafficTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isHeavy = label == 'Trafico pesado';
-    final isToll = label == 'Con peaje';
-    final isModerate = label == 'Trafico moderado';
+    final upper = label.toUpperCase();
+    final isHeavy = upper == 'COMPLETED';
+    final isToll = upper == 'PLANNED';
+    final isModerate = upper == 'IN_PROGRESS';
 
     Color textColor = const Color(0xFF16A34A);
     Color bgColor = const Color(0xFFE8F8EF);
@@ -897,82 +710,6 @@ class _PointChip extends StatelessWidget {
   }
 }
 
-class _InputBox extends StatelessWidget {
-  const _InputBox({
-    required this.icon,
-    required this.iconColor,
-    required this.text,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD9E2EC)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(width: 10),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.gray500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SecondaryGhostButton extends StatelessWidget {
-  const _SecondaryGhostButton({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD9E2EC)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: AppColors.text, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 BoxDecoration _surfaceDecoration() {
   return BoxDecoration(
     color: AppColors.white,
@@ -988,40 +725,15 @@ BoxDecoration _surfaceDecoration() {
   );
 }
 
-class _RoutePainter extends CustomPainter {
-  const _RoutePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final routePaint = Paint()
-      ..color = AppColors.secondary
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final startPaint = Paint()..color = const Color(0xFF22C55E);
-    final endPaint = Paint()..color = const Color(0xFFEF4444);
-
-    final path = Path()
-      ..moveTo(size.width * 0.22, size.height * 0.78)
-      ..quadraticBezierTo(
-        size.width * 0.32,
-        size.height * 0.56,
-        size.width * 0.48,
-        size.height * 0.48,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.62,
-        size.height * 0.34,
-        size.width * 0.72,
-        size.height * 0.14,
-      );
-
-    canvas.drawPath(path, routePaint);
-    canvas.drawCircle(Offset(size.width * 0.22, size.height * 0.78), 8, startPaint);
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.14), 8, endPaint);
+String _statusLabel(String status) {
+  switch (status.toUpperCase()) {
+    case 'IN_PROGRESS':
+      return 'IN_PROGRESS';
+    case 'COMPLETED':
+      return 'COMPLETED';
+    case 'PLANNED':
+      return 'PLANNED';
+    default:
+      return status.toUpperCase();
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

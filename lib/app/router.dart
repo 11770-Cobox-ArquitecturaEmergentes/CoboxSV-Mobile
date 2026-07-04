@@ -18,10 +18,7 @@ import 'package:cobox_sv_mobile/features/notifications/presentation/pages/notifi
 import 'package:cobox_sv_mobile/features/profile/domain/entities/profile_entity.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/entities/vehicle_entity.dart';
 import 'package:cobox_sv_mobile/features/profile/presentation/pages/profile_page.dart';
-import 'package:cobox_sv_mobile/features/profile/presentation/pages/edit_profile_page.dart';
-import 'package:cobox_sv_mobile/features/profile/presentation/pages/vehicle_info_page.dart';
 import 'package:cobox_sv_mobile/features/profile/presentation/pages/change_password_page.dart';
-import 'package:cobox_sv_mobile/features/supervisor/presentation/pages/supervisor_dashboard_page.dart';
 import 'package:cobox_sv_mobile/shared/widgets/bottom_nav_bar.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -31,6 +28,7 @@ GoRouter createRouter(
   Listenable? refreshListenable,
 }) {
   // ignore: no_leading_underscores_for_local_identifiers
+  // ignore: unused_local_variable
   final mockVehicle = VehicleEntity(
     id: '1',
     plate: 'ABC-1234',
@@ -46,6 +44,7 @@ GoRouter createRouter(
   );
 
   // ignore: no_leading_underscores_for_local_identifiers
+  // ignore: unused_local_variable
   final mockProfile = ProfileEntity(
     id: '1',
     name: 'Carlos Rodríguez',
@@ -60,20 +59,29 @@ GoRouter createRouter(
   );
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     debugLogDiagnostics: false,
     refreshListenable: refreshListenable,
     redirect: (context, state) {
       final authStatus = ref.read(authStatusProvider);
+      final isUnknown = authStatus == AuthStatus.unknown;
       final loggedIn = authStatus == AuthStatus.authenticated;
       final location = state.uri.toString();
+      final isSplash = location == '/splash';
       final isLogin = location == '/login';
       final isSignup = location == '/signup';
+      if (isUnknown) {
+        return isSplash ? null : '/splash';
+      }
 
-      if (!loggedIn && !isLogin && !isSignup) {
+      if (!loggedIn && isSplash) {
         return '/login';
       }
-      if (loggedIn && isSignup) {
+
+      if (!loggedIn && !isLogin && !isSignup && !isSplash) {
+        return '/login';
+      }
+      if (loggedIn && (isLogin || isSignup || isSplash)) {
         return '/home';
       }
       return null;
@@ -106,13 +114,6 @@ GoRouter createRouter(
             return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: const Duration(milliseconds: 250),
-        ),
-      ),
-      GoRoute(
-        path: '/supervisor/dashboard',
-        pageBuilder: (context, state) => NoTransitionPage(
-          key: state.pageKey,
-          child: const SupervisorDashboardPage(),
         ),
       ),
       StatefulShellRoute.indexedStack(
@@ -266,46 +267,6 @@ GoRouter createRouter(
                   child: const ProfilePage(),
                 ),
                 routes: [
-                  GoRoute(
-                    path: 'edit',
-                    pageBuilder: (context, state) => CustomTransitionPage(
-                      key: state.pageKey,
-                      child: EditProfilePage(profile: mockProfile),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.25, 0),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeInOut,
-                          )),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'vehicle',
-                    pageBuilder: (context, state) => CustomTransitionPage(
-                      key: state.pageKey,
-                      child: VehicleInfoPage(vehicle: mockVehicle),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.25, 0),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeInOut,
-                          )),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                    ),
-                  ),
                   GoRoute(
                     path: 'password',
                     pageBuilder: (context, state) => CustomTransitionPage(
