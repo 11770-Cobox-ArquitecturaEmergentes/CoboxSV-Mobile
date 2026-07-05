@@ -102,7 +102,10 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = await localDataSource.getUser();
       if (user != null) {
         try {
-          await remoteDataSource.getUserById(user.id);
+          final remoteUser = await remoteDataSource.getCurrentUserProfile();
+          final updatedUser = UserModel.fromJson(remoteUser);
+          await localDataSource.saveUser(updatedUser);
+          return Right(_userModelToEntity(updatedUser));
         } on Exception {
           await localDataSource.clearTokens();
           await localDataSource.clearUser();
@@ -114,7 +117,6 @@ class AuthRepositoryImpl implements AuthRepository {
             ),
           );
         }
-        return Right(_userModelToEntity(user));
       }
       return Left(CacheFailure(message: 'No cached user found'));
     } on Exception catch (e) {

@@ -3,44 +3,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 
 import 'package:cobox_sv_mobile/app/constants.dart';
-import 'package:cobox_sv_mobile/core/api/endpoints.dart';
 import 'package:cobox_sv_mobile/core/errors/exceptions.dart';
-
-class _PendingRequest {
-  final RequestOptions options;
-  final ErrorInterceptorHandler handler;
-
-  _PendingRequest({required this.options, required this.handler});
-}
 
 class AuthInterceptor extends Interceptor {
   final FlutterSecureStorage secureStorage;
-  final Dio dio;
 
   AuthInterceptor({
     required this.secureStorage,
-    required this.dio,
   });
-
-  bool _isRefreshing = false;
-  final List<_PendingRequest> _pendingRequests = [];
-
-  bool _isPublicAuthPath(String path) {
-    return path == Endpoints.login ||
-        path == Endpoints.register ||
-        path == Endpoints.refreshToken ||
-        path == Endpoints.forgotPassword ||
-        path == Endpoints.resetPassword;
-  }
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    if (_isPublicAuthPath(options.path)) {
-      options.headers.remove('Authorization');
-      handler.next(options);
-      return;
-    }
-
     try {
       final token = await secureStorage.read(
         key: AppConstants.storageAuthToken,
@@ -58,83 +31,17 @@ class AuthInterceptor extends Interceptor {
       handler.next(err);
       return;
     }
-
-    if (_isPublicAuthPath(err.requestOptions.path)) {
-      handler.next(err);
-      return;
-    }
-
-    if (_isRefreshing) {
-      _pendingRequests.add(_PendingRequest(options: err.requestOptions, handler: handler));
-      return;
-    }
-
-    _isRefreshing = true;
-    try {
-      final refreshToken = await secureStorage.read(
-        key: AppConstants.storageRefreshToken,
-      );
-      if (refreshToken == null || refreshToken.isEmpty) {
-        handler.next(err);
-        return;
-      }
-
-      final response = await dio.post(
-        Endpoints.refreshToken,
-        data: {'refreshToken': refreshToken},
-      );
-
-      final newToken = response.data['accessToken'] as String?;
-      if (newToken == null || newToken.isEmpty) {
-        throw UnauthorizedException('Invalid refresh response');
-      }
-
-      final newRefreshToken = response.data['refreshToken'] as String? ?? refreshToken;
-
-      await secureStorage.write(
-        key: AppConstants.storageAuthToken,
-        value: newToken,
-      );
-      await secureStorage.write(
-        key: AppConstants.storageRefreshToken,
-        value: newRefreshToken,
-      );
-
-      final pending = List<_PendingRequest>.from(_pendingRequests);
-      _pendingRequests.clear();
-
-      for (final p in pending) {
-        p.options.headers['Authorization'] = 'Bearer $newToken';
-        try {
-          final r = await dio.fetch(p.options);
-          p.handler.resolve(r);
-        } catch (e) {
-          p.handler.reject(e as DioException);
-        }
-      }
-
-      err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
-      final retryResponse = await dio.fetch(err.requestOptions);
-      handler.resolve(retryResponse);
-    } catch (e) {
-      await secureStorage.delete(key: AppConstants.storageAuthToken);
-      await secureStorage.delete(key: AppConstants.storageRefreshToken);
-
-      final pending = List<_PendingRequest>.from(_pendingRequests);
-      _pendingRequests.clear();
-
-      for (final p in pending) {
-        p.handler.reject(err);
-      }
-
-      handler.reject(DioException(
+    await secureStorage.delete(key: AppConstants.storageAuthToken);
+    await secureStorage.delete(key: AppConstants.storageRefreshToken);
+    handler.reject(
+      DioException(
         requestOptions: err.requestOptions,
-        error: e is AppException ? e : UnauthorizedException('Session expired. Please login again.'),
+        error: UnauthorizedException(
+          'La sesion expiro. Inicia sesion nuevamente.',
+        ),
         response: err.response,
-      ));
-    } finally {
-      _isRefreshing = false;
-    }
+      ),
+    );
   }
 }
 

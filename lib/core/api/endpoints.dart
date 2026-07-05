@@ -4,14 +4,6 @@ class Endpoints {
     defaultValue: 'https://api.coboxsv.com/api/v1',
   );
 
-  static const String login = '/authentication/sign-in';
-  static const String register = '/authentication/sign-up';
-  static const String logout = '/auth/logout';
-  static const String refreshToken = '/auth/refresh';
-  static const String forgotPassword = '/auth/forgot-password';
-  static const String resetPassword = '/auth/reset-password';
-  static const String changePassword = '/auth/change-password';
-
   static const String dashboard = '/drivers/{driverId}/dashboard';
   static const String recentActivity = '/drivers/{driverId}/activity';
 
@@ -45,6 +37,7 @@ class Endpoints {
   static const String markAllRead = '/notifications/read-all';
 
   static const String users = '/users';
+  static const String currentUser = '/users/me';
   static const String vehicles = '/vehicles';
   static const String documents = '/documents';
 
