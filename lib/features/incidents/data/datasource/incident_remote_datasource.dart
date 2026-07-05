@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:cobox_sv_mobile/core/api/dio_client.dart';
 import 'package:cobox_sv_mobile/core/api/endpoints.dart';
+import 'package:cobox_sv_mobile/core/errors/exceptions.dart';
+import 'package:cobox_sv_mobile/features/authentication/data/datasource/auth_local_datasource.dart';
 import 'package:cobox_sv_mobile/features/incidents/data/models/incident_model.dart';
 
 class IncidentRemoteDataSource {
   final DioClient _client;
+  final AuthLocalDataSource _authLocalDataSource;
 
-  IncidentRemoteDataSource(this._client);
+  IncidentRemoteDataSource(this._client, this._authLocalDataSource);
 
   Future<({List<IncidentModel> incidents, int total})> getIncidents({
     int page = 1,
@@ -27,49 +30,80 @@ class IncidentRemoteDataSource {
       Endpoints.incidents,
       queryParameters: queryParams,
     );
+    if (response.data is! List) {
+      throw const ServerException('Invalid incidents response');
+    }
 
-    final data = response.data as Map<String, dynamic>;
-    final list = (data['data'] as List<dynamic>?)
-            ?.map((e) => IncidentModel.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
-    final total = data['total'] as int? ?? list.length;
-    return (incidents: list, total: total);
+    var incidents = (response.data as List<dynamic>)
+        .map((e) => IncidentModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    final currentUser = await _authLocalDataSource.getUser();
+    final currentUserId = currentUser?.id;
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      incidents = incidents
+          .where((incident) => incident.reportedBy == currentUserId)
+          .toList();
+    }
+
+    if (type != null && type.isNotEmpty) {
+      incidents = incidents.where((incident) => incident.type == type).toList();
+    }
+
+    if (status != null && status.isNotEmpty) {
+      incidents = incidents
+          .where((incident) => incident.status.toUpperCase() == status.toUpperCase())
+          .toList();
+    }
+
+    if (search != null && search.isNotEmpty) {
+      final normalizedSearch = search.toLowerCase();
+      incidents = incidents.where((incident) {
+        return incident.id.toLowerCase().contains(normalizedSearch) ||
+            incident.title.toLowerCase().contains(normalizedSearch) ||
+            incident.description.toLowerCase().contains(normalizedSearch);
+      }).toList();
+    }
+
+    incidents.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    final total = incidents.length;
+    final start = ((page - 1) * limit).clamp(0, total).toInt();
+    final end = (start + limit).clamp(0, total).toInt();
+    return (incidents: incidents.sublist(start, end), total: total);
   }
 
   Future<IncidentModel> createIncident(IncidentModel incident) async {
+    final currentUser = await _authLocalDataSource.getUser();
+    final responsibleUserId = int.tryParse(currentUser?.id ?? '');
+    if (responsibleUserId == null) {
+      throw const ServerException('No se pudo resolver el conductor autenticado');
+    }
+
     final response = await _client.post(
       Endpoints.createIncident,
-      data: incident.toJson(),
+      data: {
+        'type': incident.type,
+        'description': incident.description,
+        'severity': incident.severity.toUpperCase(),
+        'responsibleUserId': responsibleUserId,
+      },
     );
-    final data = response.data as Map<String, dynamic>;
-    final incidentData = data['data'] as Map<String, dynamic>? ?? data;
-    return IncidentModel.fromJson(incidentData);
+    return IncidentModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<IncidentModel> getIncidentDetail(String id) async {
     final response = await _client.get('${Endpoints.incidents}/$id');
-    final data = response.data as Map<String, dynamic>;
-    final incidentData = data['data'] as Map<String, dynamic>? ?? data;
-    return IncidentModel.fromJson(incidentData);
+    return IncidentModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<List<String>> uploadEvidence(List<String> filePaths) async {
-    final files = <String, File>{};
-    for (int i = 0; i < filePaths.length; i++) {
-      files['file_$i'] = File(filePaths[i]);
+    for (final path in filePaths) {
+      final file = File(path);
+      if (!file.existsSync()) {
+        throw ServerException('No se encontro el archivo de evidencia: $path');
+      }
     }
-
-    final response = await _client.upload(
-      Endpoints.uploadEvidence,
-      files: files,
-    );
-
-    final data = response.data as Map<String, dynamic>;
-    final urls = (data['data'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [];
-    return urls;
+    return filePaths;
   }
 }

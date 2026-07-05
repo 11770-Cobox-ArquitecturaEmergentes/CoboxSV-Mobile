@@ -31,8 +31,9 @@ enum IncidentType {
   }
 
   static IncidentType fromValue(String value) {
+    final normalized = value.toLowerCase();
     return IncidentType.values.firstWhere(
-      (type) => type.value == value,
+      (type) => type.value == normalized || type.name.toLowerCase() == normalized,
       orElse: () => IncidentType.other,
     );
   }
