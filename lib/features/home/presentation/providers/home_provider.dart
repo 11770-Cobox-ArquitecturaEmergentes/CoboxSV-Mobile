@@ -76,10 +76,7 @@ class HomeController extends StateNotifier<HomeState> {
       final routesResult = await _safeGetRoutes();
       final orders = orderResult.orders;
       final routes = routesResult.routes;
-      final activeRoute = routes.cast<RouteEntity?>().firstWhere(
-            (route) => route?.status == 'IN_PROGRESS',
-            orElse: () => null,
-          );
+      final activeRoute = _pickCurrentRoute(routes);
 
       state = HomeState(
         status: HomeStatus.loaded,
@@ -209,6 +206,16 @@ class HomeController extends StateNotifier<HomeState> {
       default:
         return status;
     }
+  }
+
+  RouteEntity? _pickCurrentRoute(List<RouteEntity> routes) {
+    for (final route in routes) {
+      if (route.status == 'IN_PROGRESS') return route;
+    }
+    for (final route in routes) {
+      if (route.status == 'PLANNED') return route;
+    }
+    return routes.isNotEmpty ? routes.first : null;
   }
 }
 

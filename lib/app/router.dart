@@ -194,18 +194,22 @@ GoRouter createRouter(
                   ),
                 ],
               ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
               GoRoute(
-                path: '/incidents',
+                path: '/orders',
                 pageBuilder: (context, state) => NoTransitionPage(
                   key: state.pageKey,
-                  child: const IncidentsPage(),
+                  child: const OrdersPage(),
                 ),
                 routes: [
                   GoRoute(
                     path: ':id',
                     pageBuilder: (context, state) => CustomTransitionPage(
                       key: state.pageKey,
-                      child: IncidentDetailPage(id: state.pathParameters['id']!),
+                      child: OrderDetailPage(id: state.pathParameters['id']!),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         return SlideTransition(
                           position: Tween<Offset>(
@@ -228,17 +232,17 @@ GoRouter createRouter(
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/orders',
+                path: '/incidents',
                 pageBuilder: (context, state) => NoTransitionPage(
                   key: state.pageKey,
-                  child: const OrdersPage(),
+                  child: const IncidentsPage(),
                 ),
                 routes: [
                   GoRoute(
                     path: ':id',
                     pageBuilder: (context, state) => CustomTransitionPage(
                       key: state.pageKey,
-                      child: OrderDetailPage(id: state.pathParameters['id']!),
+                      child: IncidentDetailPage(id: state.pathParameters['id']!),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         return SlideTransition(
                           position: Tween<Offset>(

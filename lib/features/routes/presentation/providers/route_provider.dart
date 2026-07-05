@@ -51,11 +51,18 @@ final routeDetailProvider = FutureProvider.autoDispose.family<RouteEntity, Strin
 
 final activeRouteProvider = FutureProvider.autoDispose<RouteEntity?>((ref) async {
   final routes = await ref.watch(getRoutesUseCaseProvider).call(date: DateTime.now());
-  return routes.cast<RouteEntity?>().firstWhere(
-        (r) => r!.status == 'IN_PROGRESS',
-        orElse: () => null,
-      );
+  return _pickCurrentRoute(routes);
 });
+
+RouteEntity? _pickCurrentRoute(List<RouteEntity> routes) {
+  for (final route in routes) {
+    if (route.status == 'IN_PROGRESS') return route;
+  }
+  for (final route in routes) {
+    if (route.status == 'PLANNED') return route;
+  }
+  return routes.isNotEmpty ? routes.first : null;
+}
 
 class RouteNotifier extends StateNotifier<AsyncValue<RouteEntity?>> {
   final StartRouteUseCase _startRoute;
