@@ -174,12 +174,12 @@ class _StatusChip extends StatelessWidget {
 
   _StatusConfig _statusConfig(String status) {
     switch (status.toUpperCase()) {
-      case 'ACTIVE':
-        return _StatusConfig('Activo', Colors.green);
-      case 'PENDING':
-        return _StatusConfig('Pendiente', Colors.orange);
+      case 'IN_PROGRESS':
+        return _StatusConfig('En progreso', Colors.green);
+      case 'PLANNED':
+        return _StatusConfig('Planificada', Colors.orange);
       case 'COMPLETED':
-        return _StatusConfig('Completado', Colors.blue);
+        return _StatusConfig('Completada', Colors.blue);
       case 'CANCELLED':
         return _StatusConfig('Cancelado', Colors.red);
       default:

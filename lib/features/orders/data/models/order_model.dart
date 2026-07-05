@@ -45,9 +45,54 @@ class OrderModel {
     this.photoUrls,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    return OrderModel(
+      id: (json['id'] ?? '').toString(),
+      orderNumber: (json['orderNumber'] ?? json['id'] ?? '').toString(),
+      clientName: 'Cliente ${(json['clientId'] ?? '').toString()}',
+      clientPhone: json['clientPhone'] as String?,
+      deliveryAddress: AddressModel(
+        street: (json['addressLine'] ?? '').toString(),
+        city: (json['city'] ?? '').toString(),
+        state: (json['country'] ?? '').toString(),
+        zipCode: json['postalCode']?.toString(),
+        latitude: _doubleOrNull(json['referenceLatitude']),
+        longitude: _doubleOrNull(json['referenceLongitude']),
+      ),
+      pickupAddress: null,
+      status: _normalizeStatus((json['status'] ?? json['orderStatus'] ?? '').toString()),
+      items: const [],
+      scheduledDate: _dateOrNull(json['scheduledDate']),
+      scheduledTimeWindow: json['scheduledTimeWindow']?.toString(),
+      actualDeliveryTime: _dateOrNull(json['actualDeliveryTime']),
+      weight: _doubleOrNull(json['weightKg'] ?? json['weight']),
+      volume: _doubleOrNull(json['volume']),
+      notes: json['notes']?.toString(),
+      signature: json['signature']?.toString(),
+      photoUrls: (json['photoUrls'] as List<dynamic>?)
+          ?.map((item) => item.toString())
+          .toList(),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$OrderModelToJson(this);
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'orderNumber': orderNumber,
+        'clientName': clientName,
+        'clientPhone': clientPhone,
+        'deliveryAddress': deliveryAddress.toJson(),
+        'pickupAddress': pickupAddress?.toJson(),
+        'status': status,
+        'items': items.map((item) => item.toJson()).toList(),
+        'scheduledDate': scheduledDate?.toIso8601String(),
+        'scheduledTimeWindow': scheduledTimeWindow,
+        'actualDeliveryTime': actualDeliveryTime?.toIso8601String(),
+        'weight': weight,
+        'volume': volume,
+        'notes': notes,
+        'signature': signature,
+        'photoUrls': photoUrls,
+      };
 
   OrderEntity toEntity() {
     return OrderEntity(
@@ -129,5 +174,35 @@ class OrderModel {
       signature: entity.signature,
       photoUrls: entity.photoUrls.isNotEmpty ? entity.photoUrls : null,
     );
+  }
+
+  static String _normalizeStatus(String rawStatus) {
+    switch (rawStatus.toUpperCase()) {
+      case 'RECEIVED':
+      case 'PROCESSING':
+        return OrderStatus.pending.value;
+      case 'READY_FOR_DISPATCH':
+        return OrderStatus.assigned.value;
+      case 'IN_TRANSIT':
+        return OrderStatus.inProgress.value;
+      case 'DELIVERED':
+        return OrderStatus.completed.value;
+      case 'CANCELLED':
+        return OrderStatus.cancelled.value;
+      default:
+        return rawStatus.toLowerCase();
+    }
+  }
+
+  static DateTime? _dateOrNull(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  static double? _doubleOrNull(dynamic value) {
+    if (value is num) return value.toDouble();
+    return null;
   }
 }

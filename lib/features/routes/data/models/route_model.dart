@@ -41,9 +41,66 @@ class RouteModel {
     this.notes,
   });
 
-  factory RouteModel.fromJson(Map<String, dynamic> json) => _$RouteModelFromJson(json);
+  factory RouteModel.fromJson(Map<String, dynamic> json) {
+    final orderIds = _parseOrderIds(json['ordersIds']);
+    final finishedOrderIds = _parseOrderIds(json['finishedOrderIds']).toSet();
 
-  Map<String, dynamic> toJson() => _$RouteModelToJson(this);
+    return RouteModel(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? json['title'] ?? 'Ruta').toString(),
+      origin: json['origin']?.toString() ?? 'Centro logístico',
+      destination: json['destination']?.toString() ?? 'Destino asignado',
+      stops: orderIds.asMap().entries.map((entry) {
+        final orderId = entry.value;
+        final isCompleted = finishedOrderIds.contains(orderId);
+        final isInProgress = !isCompleted &&
+            (json['routeStatus']?.toString() == 'IN_PROGRESS') &&
+            finishedOrderIds.length == entry.key;
+
+        return StopModel(
+          id: orderId,
+          orderId: orderId,
+          sequence: entry.key + 1,
+          address: 'Pedido #$orderId',
+          clientName: 'Cliente $orderId',
+          status: isCompleted
+              ? 'COMPLETED'
+              : isInProgress
+                  ? 'IN_PROGRESS'
+                  : 'PENDING',
+          notes: null,
+        );
+      }).toList(),
+      status: (json['status'] ?? json['routeStatus'] ?? 'PLANNED').toString(),
+      startTime: _dateFromJson(json['start_time'] ?? json['startTime']),
+      estimatedEndTime: _dateFromJson(
+        json['estimated_end_time'] ?? json['estimatedEndTime'],
+      ),
+      actualEndTime: _dateFromJson(
+        json['actual_end_time'] ?? json['actualEndTime'],
+      ),
+      distance: _doubleFromJson(json['distance']),
+      duration: _intFromJson(json['duration']),
+      orderIds: orderIds,
+      notes: json['notes']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'origin': origin,
+        'destination': destination,
+        'stops': stops.map((stop) => stop.toJson()).toList(),
+        'status': status,
+        'start_time': startTime?.toIso8601String(),
+        'estimated_end_time': estimatedEndTime?.toIso8601String(),
+        'actual_end_time': actualEndTime?.toIso8601String(),
+        'distance': distance,
+        'duration': duration,
+        'order_ids': orderIds,
+        'notes': notes,
+      };
 
   RouteEntity toEntity() {
     return RouteEntity(
@@ -79,5 +136,32 @@ class RouteModel {
       orderIds: entity.orderIds,
       notes: entity.notes,
     );
+  }
+
+  static List<String> _parseOrderIds(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((entry) {
+      if (entry is Map<String, dynamic>) {
+        return (entry['orderId'] ?? '').toString();
+      }
+      return entry.toString();
+    }).where((id) => id.isNotEmpty).toList();
+  }
+
+  static DateTime? _dateFromJson(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  static double _doubleFromJson(dynamic value) {
+    if (value is num) return value.toDouble();
+    return 0;
+  }
+
+  static int? _intFromJson(dynamic value) {
+    if (value is num) return value.toInt();
+    return null;
   }
 }

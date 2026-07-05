@@ -53,8 +53,9 @@ enum IncidentSeverity {
   final String label;
 
   static IncidentSeverity fromValue(String value) {
+    final normalized = value.toLowerCase();
     return IncidentSeverity.values.firstWhere(
-      (s) => s.name == value,
+      (s) => s.name == normalized,
       orElse: () => IncidentSeverity.medium,
     );
   }
@@ -63,6 +64,7 @@ enum IncidentSeverity {
 enum IncidentStatus {
   open('Abierta'),
   inProgress('En Progreso'),
+  escalated('Escalada'),
   resolved('Resuelta'),
   closed('Cerrada');
 
@@ -70,8 +72,16 @@ enum IncidentStatus {
   final String label;
 
   static IncidentStatus fromValue(String value) {
+    final normalized = switch (value.toUpperCase()) {
+      'IN_PROGRESS' => 'inProgress',
+      'ESCALATED' => 'escalated',
+      'RESOLVED' => 'resolved',
+      'CLOSED' => 'closed',
+      'OPEN' => 'open',
+      _ => value,
+    };
     return IncidentStatus.values.firstWhere(
-      (s) => s.name == value || s.label == value,
+      (s) => s.name == normalized || s.label == value,
       orElse: () => IncidentStatus.open,
     );
   }

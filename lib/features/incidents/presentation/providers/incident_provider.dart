@@ -1,25 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/errors/failures.dart';
 import 'package:cobox_sv_mobile/core/errors/error_handler.dart';
+import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/incidents/data/datasource/incident_remote_datasource.dart';
-import 'package:cobox_sv_mobile/features/incidents/data/repository/mock_incident_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/incidents/data/repository/incident_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/repository/incident_repository.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/usecases/create_incident_usecase.dart';
+import 'package:cobox_sv_mobile/features/incidents/domain/usecases/get_incident_detail_usecase.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/usecases/get_incidents_usecase.dart';
 import 'package:cobox_sv_mobile/shared/enums/incident_type.dart';
 
 final incidentRemoteDataSourceProvider = Provider<IncidentRemoteDataSource>((ref) {
-  return IncidentRemoteDataSource(ref.watch(dioClientProvider));
+  return IncidentRemoteDataSource(
+    ref.watch(dioClientProvider),
+    ref.watch(authLocalDataSourceProvider),
+  );
 });
 
 final incidentRepositoryProvider = Provider<IncidentRepository>((ref) {
-  if (ref.watch(useMockApiProvider)) {
-    return MockIncidentRepositoryImpl();
-  }
   return IncidentRepositoryImpl(ref.watch(incidentRemoteDataSourceProvider));
 });
 
@@ -29,6 +29,10 @@ final getIncidentsUseCaseProvider = Provider<GetIncidentsUseCase>((ref) {
 
 final createIncidentUseCaseProvider = Provider<CreateIncidentUseCase>((ref) {
   return CreateIncidentUseCase(ref.watch(incidentRepositoryProvider));
+});
+
+final getIncidentDetailUseCaseProvider = Provider<GetIncidentDetailUseCase>((ref) {
+  return GetIncidentDetailUseCase(ref.watch(incidentRepositoryProvider));
 });
 
 class IncidentsState {
@@ -86,12 +90,15 @@ class IncidentsState {
 class IncidentsNotifier extends StateNotifier<IncidentsState> {
   final GetIncidentsUseCase _getIncidentsUseCase;
   final CreateIncidentUseCase _createIncidentUseCase;
+  final GetIncidentDetailUseCase _getIncidentDetailUseCase;
 
   IncidentsNotifier({
     required GetIncidentsUseCase getIncidentsUseCase,
     required CreateIncidentUseCase createIncidentUseCase,
+    required GetIncidentDetailUseCase getIncidentDetailUseCase,
   })  : _getIncidentsUseCase = getIncidentsUseCase,
         _createIncidentUseCase = createIncidentUseCase,
+        _getIncidentDetailUseCase = getIncidentDetailUseCase,
         super(const IncidentsState());
 
   static const _pageSize = 20;
@@ -174,13 +181,7 @@ class IncidentsNotifier extends StateNotifier<IncidentsState> {
 
   Future<IncidentEntity?> getIncidentDetail(String id) async {
     try {
-      final result = await _getIncidentsUseCase(
-        page: 1,
-        limit: 1,
-        search: id,
-      );
-      if (result.incidents.isNotEmpty) return result.incidents.first;
-      return null;
+      return await _getIncidentDetailUseCase(id);
     } on Failure catch (e) {
       state = state.copyWith(error: getErrorMessage(e));
       return null;
@@ -192,5 +193,6 @@ final incidentsProvider = StateNotifierProvider<IncidentsNotifier, IncidentsStat
   return IncidentsNotifier(
     getIncidentsUseCase: ref.watch(getIncidentsUseCaseProvider),
     createIncidentUseCase: ref.watch(createIncidentUseCaseProvider),
+    getIncidentDetailUseCase: ref.watch(getIncidentDetailUseCaseProvider),
   );
 });

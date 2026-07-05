@@ -38,28 +38,16 @@ class _IncidentDetailPageState extends ConsumerState<IncidentDetailPage> {
       _isLoading = true;
       _error = null;
     });
-    try {
-      final state = ref.read(incidentsProvider);
-      final incident = state.incidents.where((i) => i.id == widget.id).firstOrNull;
-      if (incident != null) {
-        setState(() {
-          _incident = incident;
-          _isLoading = false;
-        });
-      } else {
-        ref.read(incidentsProvider.notifier).loadIncidents().then((_) {
-          final newState = ref.read(incidentsProvider);
-          final found = newState.incidents.where((i) => i.id == widget.id).firstOrNull;
-          setState(() {
-            _incident = found;
-            _isLoading = false;
-            if (found == null) _error = 'Incidencia no encontrada.';
-          });
-        });
-      }
-    } catch (e) {
+    final incident = await ref.read(incidentsProvider.notifier).getIncidentDetail(widget.id);
+    if (!mounted) return;
+    if (incident != null) {
       setState(() {
-        _error = 'Error al cargar la incidencia.';
+        _incident = incident;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = 'Incidencia no encontrada.';
         _isLoading = false;
       });
     }
@@ -300,6 +288,8 @@ class _IncidentDetailPageState extends ConsumerState<IncidentDetailPage> {
         return cs.error;
       case IncidentStatus.inProgress:
         return Colors.blue;
+      case IncidentStatus.escalated:
+        return Colors.deepOrange;
       case IncidentStatus.resolved:
         return Colors.green;
       case IncidentStatus.closed:
@@ -354,7 +344,7 @@ class _StatusHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: incident.status == IncidentStatus.open
                             ? cs.error.withValues(alpha: 0.12)
-                            : Colors.green.withValues(alpha: 0.12),
+                            : _statusBadgeColor(incident.status).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -362,7 +352,7 @@ class _StatusHeader extends StatelessWidget {
                         style: TextStyle(
                           color: incident.status == IncidentStatus.open
                               ? cs.error
-                              : Colors.green,
+                              : _statusBadgeColor(incident.status),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -405,6 +395,16 @@ class _StatusHeader extends StatelessWidget {
       case IncidentSeverity.critical:
         return Colors.red;
     }
+  }
+
+  Color _statusBadgeColor(IncidentStatus status) {
+    return switch (status) {
+      IncidentStatus.open => cs.error,
+      IncidentStatus.inProgress => Colors.blue,
+      IncidentStatus.escalated => Colors.deepOrange,
+      IncidentStatus.resolved => Colors.green,
+      IncidentStatus.closed => Colors.grey,
+    };
   }
 }
 

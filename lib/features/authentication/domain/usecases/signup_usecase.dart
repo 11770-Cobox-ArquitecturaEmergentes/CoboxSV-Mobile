@@ -8,12 +8,14 @@ class SignupParams {
   final String email;
   final String password;
   final String phone;
+  final String licenceNumber;
 
   const SignupParams({
     required this.name,
     required this.email,
     required this.password,
     required this.phone,
+    required this.licenceNumber,
   });
 }
 
@@ -28,6 +30,7 @@ class SignupUseCase {
       email: params.email,
       password: params.password,
       phone: params.phone,
+      licenceNumber: params.licenceNumber,
     );
   }
 }

@@ -33,8 +33,18 @@ enum OrderStatus {
   }
 
   static OrderStatus fromValue(String value) {
+    final normalized = switch (value.toUpperCase()) {
+      'RECEIVED' => pending.value,
+      'PROCESSING' => pending.value,
+      'READY_FOR_DISPATCH' => assigned.value,
+      'IN_TRANSIT' => inProgress.value,
+      'DELIVERED' => completed.value,
+      'CANCELLED' => cancelled.value,
+      _ => value.toLowerCase(),
+    };
+
     return OrderStatus.values.firstWhere(
-      (status) => status.value == value,
+      (status) => status.value == normalized,
       orElse: () => OrderStatus.pending,
     );
   }

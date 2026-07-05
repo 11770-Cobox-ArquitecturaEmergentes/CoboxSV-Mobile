@@ -12,7 +12,10 @@ import 'package:cobox_sv_mobile/features/planning/data/repository/planning_repos
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
 final planningRemoteDataSourceProvider = Provider<PlanningRemoteDataSource>((ref) {
-  return PlanningRemoteDataSource(ref.watch(dioClientProvider));
+  return PlanningRemoteDataSource(
+    ref.watch(dioClientProvider),
+    ref.watch(authLocalDataSourceProvider),
+  );
 });
 
 final planningLocalDataSourceProvider = Provider<PlanningLocalDataSource>((ref) {

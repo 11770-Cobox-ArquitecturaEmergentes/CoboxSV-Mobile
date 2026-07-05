@@ -54,11 +54,12 @@ class _OrdersPageState extends ConsumerState<OrdersPage> {
                       order: state.orders[index],
                       onPrimaryAction: () async {
                         final nextStatus = switch (state.orders[index].status) {
-                          OrderStatus.pending => OrderStatus.inProgress,
+                          OrderStatus.pending => OrderStatus.assigned,
                           OrderStatus.assigned => OrderStatus.inProgress,
-                          OrderStatus.inProgress => OrderStatus.completed,
+                          OrderStatus.inProgress => OrderStatus.inProgress,
                           _ => state.orders[index].status,
                         };
+                        if (nextStatus == state.orders[index].status) return;
                         await notifier.updateStatus(
                           id: state.orders[index].id,
                           status: nextStatus,
@@ -121,7 +122,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            'Backend sincronizado',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -269,8 +270,9 @@ class _OrderCard extends StatelessWidget {
     final accent = _accentColor(order.status);
     final actionLabel = switch (order.status) {
       OrderStatus.completed => null,
-      OrderStatus.inProgress => 'Confirmar entrega',
-      OrderStatus.pending || OrderStatus.assigned => 'Iniciar entrega',
+      OrderStatus.inProgress => null,
+      OrderStatus.pending => 'Preparar despacho',
+      OrderStatus.assigned => 'Iniciar entrega',
       _ => null,
     };
 
@@ -521,7 +523,7 @@ class _StatusPill extends StatelessWidget {
       OrderStatus.completed => ('Completada', const Color(0xFF22C55E)),
       OrderStatus.inProgress => ('En progreso', AppColors.secondary),
       OrderStatus.pending => ('Pendiente', AppColors.primary),
-      OrderStatus.assigned => ('Pendiente', AppColors.primary),
+      OrderStatus.assigned => ('Lista para despacho', const Color(0xFF2563EB)),
       _ => (status.label, AppColors.gray500),
     };
 

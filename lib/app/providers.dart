@@ -12,7 +12,7 @@ import 'package:cobox_sv_mobile/core/network/network_info.dart';
 import 'package:cobox_sv_mobile/core/storage/local_storage.dart';
 import 'package:cobox_sv_mobile/core/storage/secure_storage.dart';
 
-final authStatusProvider = StateProvider<AuthStatus>((ref) => AuthStatus.unauthenticated);
+final authStatusProvider = StateProvider<AuthStatus>((ref) => AuthStatus.unknown);
 
 final routerRefreshProvider = Provider<ValueNotifier<AuthStatus>>((ref) {
   final notifier = ValueNotifier<AuthStatus>(ref.read(authStatusProvider));

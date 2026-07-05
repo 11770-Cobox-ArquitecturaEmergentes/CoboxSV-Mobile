@@ -20,7 +20,10 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   final client = ref.watch(dioClientProvider);
   final networkInfo = ref.watch(networkInfoProvider);
   return ProfileRepositoryImpl(
-    remoteDataSource: ProfileRemoteDataSource(client),
+    remoteDataSource: ProfileRemoteDataSource(
+      client,
+      ref.watch(authLocalDataSourceProvider),
+    ),
     networkInfo: networkInfo,
   );
 });

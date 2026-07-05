@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/home/presentation/providers/home_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -23,6 +25,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     final homeState = ref.watch(homeControllerProvider);
     final controller = ref.read(homeControllerProvider.notifier);
     final dashboard = homeState.dashboard;
+    final currentUser = ref.watch(authNotifierProvider).user;
+    final userName = currentUser?.name ?? 'Usuario';
+    final routeLabel = homeState.activeRoute != null
+        ? 'Ruta activa: ${homeState.activeRoute!.name}'
+        : '${homeState.routes.length} rutas asignadas';
+    final serviceLabel = homeState.activeRoute != null
+        ? 'En servicio activo'
+        : 'Sin ruta en progreso';
 
     final stats = [
       _DriverStat(
@@ -70,7 +80,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
-      appBar: const _DriverHeader(title: 'Inicio'),
+      appBar: _DriverHeader(
+        title: 'Inicio',
+        subtitle: routeLabel,
+        initial: userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+      ),
       body: RefreshIndicator(
         onRefresh: controller.refresh,
         child: SingleChildScrollView(
@@ -79,7 +93,21 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _HeroStatusCard(),
+              if (homeState.errorMessage != null && dashboard == null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    homeState.errorMessage!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.danger,
+                        ),
+                  ),
+                ),
+              _HeroStatusCard(
+                userName: userName,
+                routeLabel: routeLabel,
+                serviceLabel: serviceLabel,
+              ),
               const SizedBox(height: 20),
               if (homeState.status == HomeStatus.loading && dashboard == null)
                 const Padding(
@@ -120,9 +148,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const _PlanRouteCard(),
+              _PlanRouteCard(
+                onPressed: () => context.go('/routes'),
+              ),
               const SizedBox(height: 16),
-              const _FeedbackCard(),
+              _FeedbackCard(
+                completedOrders: dashboard?.completedOrders ?? 0,
+                pendingOrders: dashboard?.pendingOrders ?? 0,
+              ),
             ],
           ),
         ),
@@ -138,9 +171,15 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
-  const _DriverHeader({required this.title});
+  const _DriverHeader({
+    required this.title,
+    required this.subtitle,
+    required this.initial,
+  });
 
   final String title;
+  final String subtitle;
+  final String initial;
 
   @override
   Size get preferredSize => const Size.fromHeight(74);
@@ -160,7 +199,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
         child: CircleAvatar(
           backgroundColor: AppColors.primary,
           child: Text(
-            'C',
+            initial,
             style: textTheme.titleSmall?.copyWith(
               color: AppColors.white,
               fontWeight: FontWeight.w700,
@@ -182,7 +221,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            subtitle,
             style: textTheme.bodySmall?.copyWith(
               color: AppColors.gray500,
             ),
@@ -206,7 +245,15 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _HeroStatusCard extends StatelessWidget {
-  const _HeroStatusCard();
+  const _HeroStatusCard({
+    required this.userName,
+    required this.routeLabel,
+    required this.serviceLabel,
+  });
+
+  final String userName;
+  final String routeLabel;
+  final String serviceLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +274,7 @@ class _HeroStatusCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hola, Carlos!',
+            'Hola, $userName!',
             style: textTheme.headlineSmall?.copyWith(
               color: AppColors.white,
               fontWeight: FontWeight.w800,
@@ -235,7 +282,7 @@ class _HeroStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Vehiculo: ABC-1234',
+            routeLabel,
             style: textTheme.bodyLarge?.copyWith(
               color: AppColors.white,
             ),
@@ -260,7 +307,7 @@ class _HeroStatusCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'En servicio activo',
+                  serviceLabel,
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w600,
@@ -453,7 +500,9 @@ class _ActivityTile extends StatelessWidget {
 }
 
 class _PlanRouteCard extends StatelessWidget {
-  const _PlanRouteCard();
+  const _PlanRouteCard({required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +564,7 @@ class _PlanRouteCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () {},
+              onPressed: onPressed,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: AppColors.white,
@@ -525,7 +574,7 @@ class _PlanRouteCard extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.near_me_outlined, size: 18),
-              label: const Text('Registrar nueva ruta'),
+              label: const Text('Ver mis rutas'),
             ),
           ),
         ],
@@ -535,7 +584,13 @@ class _PlanRouteCard extends StatelessWidget {
 }
 
 class _FeedbackCard extends StatelessWidget {
-  const _FeedbackCard();
+  const _FeedbackCard({
+    required this.completedOrders,
+    required this.pendingOrders,
+  });
+
+  final int completedOrders;
+  final int pendingOrders;
 
   @override
   Widget build(BuildContext context) {
@@ -571,7 +626,7 @@ class _FeedbackCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Excelente trabajo!',
+                  completedOrders > 0 ? 'Excelente avance' : 'Panel actualizado',
                   style: textTheme.titleSmall?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
@@ -579,7 +634,9 @@ class _FeedbackCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Llevas 12 entregas completadas hoy. Manten el buen ritmo.',
+                  completedOrders > 0
+                      ? 'Tienes $completedOrders entregas completadas y $pendingOrders pendientes.'
+                      : 'Aun no hay entregas completadas. Revisa tus rutas asignadas.',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.primary,
                     height: 1.4,

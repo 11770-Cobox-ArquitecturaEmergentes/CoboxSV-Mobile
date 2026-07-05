@@ -1,21 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/errors/failures.dart';
-import 'package:cobox_sv_mobile/features/notifications/data/datasource/notification_remote_datasource.dart';
-import 'package:cobox_sv_mobile/features/notifications/data/repository/notification_repository_impl.dart';
+import 'package:cobox_sv_mobile/features/notifications/data/repository/mock_notification_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/notifications/domain/entities/notification_entity.dart';
 import 'package:cobox_sv_mobile/features/notifications/domain/repository/notification_repository.dart';
 import 'package:cobox_sv_mobile/features/notifications/domain/usecases/get_notifications_usecase.dart';
 import 'package:cobox_sv_mobile/features/notifications/domain/usecases/mark_read_usecase.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  final client = ref.watch(dioClientProvider);
-  final networkInfo = ref.watch(networkInfoProvider);
-  return NotificationRepositoryImpl(
-    remoteDataSource: NotificationRemoteDataSource(client),
-    networkInfo: networkInfo,
-  );
+  return MockNotificationRepositoryImpl();
 });
 
 final getNotificationsUseCaseProvider = Provider<GetNotificationsUseCase>((ref) {

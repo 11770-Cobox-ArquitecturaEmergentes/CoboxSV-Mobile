@@ -13,32 +13,41 @@ class OrderRemoteDataSource {
     String? status,
     String? search,
   }) async {
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
-    if (status != null) queryParams['status'] = status;
-    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    final response = await _client.get(Endpoints.orders);
+    if (response.data is! List) {
+      throw const FormatException('Invalid orders response');
+    }
 
-    final response = await _client.get(
-      Endpoints.orders,
-      queryParameters: queryParams,
-    );
+    var orders = (response.data as List<dynamic>)
+        .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
+        .toList();
 
-    final data = response.data as Map<String, dynamic>;
-    final list = (data['data'] as List<dynamic>?)
-            ?.map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
-    final total = data['total'] as int? ?? list.length;
-    return (orders: list, total: total);
+    if (status != null && status.isNotEmpty) {
+      orders = orders.where((order) => order.status == status).toList();
+    }
+
+    if (search != null && search.isNotEmpty) {
+      final normalizedSearch = search.toLowerCase();
+      orders = orders.where((order) {
+        return order.orderNumber.toLowerCase().contains(normalizedSearch) ||
+            order.clientName.toLowerCase().contains(normalizedSearch) ||
+            order.deliveryAddress.fullAddress
+                .toLowerCase()
+                .contains(normalizedSearch);
+      }).toList();
+    }
+
+    final total = orders.length;
+    final start = ((page - 1) * limit).clamp(0, total).toInt();
+    final end = (start + limit).clamp(0, total).toInt();
+    final pagedOrders = orders.sublist(start, end);
+
+    return (orders: pagedOrders, total: total);
   }
 
   Future<OrderModel> getOrderDetail(String id) async {
     final response = await _client.get('${Endpoints.orders}/$id');
-    final data = response.data as Map<String, dynamic>;
-    final orderData = data['data'] as Map<String, dynamic>? ?? data;
-    return OrderModel.fromJson(orderData);
+    return OrderModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<OrderModel> updateOrderStatus({
@@ -60,9 +69,19 @@ class OrderRemoteDataSource {
       _ => '${Endpoints.orders}/$id',
     };
 
-    final response = await _client.patch(endpoint, data: body);
-    final data = response.data as Map<String, dynamic>;
-    final orderData = data['data'] as Map<String, dynamic>? ?? data;
-    return OrderModel.fromJson(orderData);
+    final payload = switch (status) {
+      'completed' => {
+          'routeId': 0,
+          'photoUrl': (photoUrls != null && photoUrls.isNotEmpty)
+              ? photoUrls.first
+              : '',
+          'receiverName': notes ?? 'Entrega confirmada',
+          'signatureData': signature ?? '',
+        },
+      _ => body,
+    };
+
+    final response = await _client.patch(endpoint, data: payload);
+    return OrderModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

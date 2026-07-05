@@ -40,9 +40,31 @@ class IncidentModel {
     this.resolution,
   });
 
-  factory IncidentModel.fromJson(Map<String, dynamic> json) => _$IncidentModelFromJson(json);
+  factory IncidentModel.fromJson(Map<String, dynamic> json) {
+    return IncidentModel(
+      id: (json['incidentId'] ?? json['id'] ?? '').toString(),
+      type: (json['type'] ?? 'other').toString(),
+      title: _titleFromType((json['type'] ?? 'other').toString()),
+      description: (json['description'] ?? '').toString(),
+      status: (json['status'] ?? 'OPEN').toString(),
+      severity: (json['severity'] ?? 'MEDIUM').toString(),
+      dateTime: _dateTimeOrNow(json['reportedAt']),
+      location: null,
+      orderId: null,
+      routeId: null,
+      evidenceUrls: const [],
+      reportedBy: json['responsibleUserId']?.toString(),
+      resolvedAt: null,
+      resolution: null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$IncidentModelToJson(this);
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'description': description,
+        'severity': severity.toUpperCase(),
+        'responsibleUserId': int.tryParse(reportedBy ?? '') ?? 0,
+      };
 
   IncidentEntity toEntity() {
     return IncidentEntity(
@@ -80,8 +102,8 @@ class IncidentModel {
       type: entity.type.value,
       title: entity.title,
       description: entity.description,
-      status: entity.status.name,
-      severity: entity.severity.name,
+      status: _statusToBackend(entity.status),
+      severity: entity.severity.name.toUpperCase(),
       dateTime: entity.dateTime,
       location: entity.location != null
           ? AddressModel(
@@ -102,5 +124,26 @@ class IncidentModel {
       resolvedAt: entity.resolvedAt,
       resolution: entity.resolution,
     );
+  }
+
+  static DateTime _dateTimeOrNow(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
+  static String _titleFromType(String rawType) {
+    return IncidentType.fromValue(rawType).label;
+  }
+
+  static String _statusToBackend(IncidentStatus status) {
+    return switch (status) {
+      IncidentStatus.open => 'OPEN',
+      IncidentStatus.inProgress => 'IN_PROGRESS',
+      IncidentStatus.escalated => 'ESCALATED',
+      IncidentStatus.resolved => 'RESOLVED',
+      IncidentStatus.closed => 'CLOSED',
+    };
   }
 }
