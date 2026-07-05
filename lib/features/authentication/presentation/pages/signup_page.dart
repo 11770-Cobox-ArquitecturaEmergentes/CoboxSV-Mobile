@@ -21,6 +21,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _licenceController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -29,6 +30,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _licenceController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -42,21 +44,33 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           phone: _phoneController.text.trim(),
+          licenceNumber: _licenceController.text.trim(),
         );
 
     final authState = ref.read(authNotifierProvider);
     switch (authState.type) {
       case AuthStateType.authenticated:
         ref.read(authStatusProvider.notifier).state = AuthStatus.authenticated;
+        if (mounted) {
+          context.go('/home');
+        }
+        break;
       case AuthStateType.error:
         if (mounted) {
+          final errorMessage = authState.error ?? 'Error al registrarse';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(authState.error ?? 'Error al registrarse'),
-              backgroundColor: AppColors.danger,
+              content: Text(errorMessage),
+              backgroundColor: errorMessage.contains('La cuenta fue creada')
+                  ? AppColors.secondary
+                  : AppColors.danger,
             ),
           );
+          if (errorMessage.contains('La cuenta fue creada')) {
+            context.go('/login');
+          }
         }
+        break;
       default:
         break;
     }
@@ -150,6 +164,43 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3FAF8),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFD9E2EC),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_shipping_outlined,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Las cuentas creadas desde esta app quedan registradas como conductores.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppColors.gray500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
                           AppTextfield(
                             controller: _nameController,
                             label: 'Nombre completo',
@@ -182,6 +233,18 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                             keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.next,
                             validator: validatePhone,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextfield(
+                            controller: _licenceController,
+                            label: 'Número de licencia',
+                            hint: 'Ej. BTO123456',
+                            prefixIcon: const Icon(Icons.badge_outlined),
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization:
+                                TextCapitalization.characters,
+                            validator: validateLicenceNumber,
                           ),
                           const SizedBox(height: 14),
                           AppTextfield(

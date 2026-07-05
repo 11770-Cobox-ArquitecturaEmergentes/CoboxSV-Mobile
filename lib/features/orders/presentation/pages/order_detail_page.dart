@@ -120,6 +120,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       ),
       body: _buildBody(cs),
       bottomNavigationBar: _order != null && _order!.status.isActive
+          && (_order!.status == OrderStatus.pending || _order!.status == OrderStatus.assigned)
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),

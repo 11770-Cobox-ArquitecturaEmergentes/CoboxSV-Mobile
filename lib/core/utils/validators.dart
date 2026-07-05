@@ -72,6 +72,20 @@ String? validateLicensePlate(String? value) {
   return null;
 }
 
+String? validateLicenceNumber(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'La licencia es requerida';
+  }
+  final cleaned = value.trim().toUpperCase();
+  if (cleaned.length < 9 || cleaned.length > 10) {
+    return 'La licencia debe tener entre 9 y 10 caracteres';
+  }
+  if (!RegExp(r'^[A-Z0-9]+$').hasMatch(cleaned)) {
+    return 'La licencia solo debe contener letras y numeros';
+  }
+  return null;
+}
+
 String? validateRequired(String? value) {
   if (value == null || value.trim().isEmpty) {
     return 'Este campo es requerido';

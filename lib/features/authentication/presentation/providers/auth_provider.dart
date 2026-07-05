@@ -12,10 +12,10 @@ import 'package:cobox_sv_mobile/features/authentication/domain/usecases/get_curr
 import 'package:cobox_sv_mobile/features/authentication/domain/usecases/forgot_password_usecase.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/datasource/auth_remote_datasource.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/datasource/auth_local_datasource.dart';
+import 'package:cobox_sv_mobile/features/authentication/data/datasource/fleet_remote_datasource.dart';
 import 'package:cobox_sv_mobile/features/authentication/data/repository/auth_repository_impl.dart';
-import 'package:cobox_sv_mobile/features/authentication/data/repository/mock_auth_repository_impl.dart';
 
-final useMockApiProvider = StateProvider<bool>((ref) => true);
+final useMockApiProvider = StateProvider<bool>((ref) => false);
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSource(dioClient: ref.watch(dioClientProvider));
@@ -25,12 +25,15 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
   return AuthLocalDataSource(secureStorage: ref.watch(secureStorageProvider));
 });
 
+final fleetRemoteDataSourceProvider = Provider<FleetRemoteDataSource>((ref) {
+  return FleetRemoteDataSource(ref.watch(dioClientProvider));
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final useMock = ref.watch(useMockApiProvider);
-  if (useMock) return MockAuthRepositoryImpl();
   return AuthRepositoryImpl(
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     localDataSource: ref.watch(authLocalDataSourceProvider),
+    fleetRemoteDataSource: ref.watch(fleetRemoteDataSourceProvider),
   );
 });
 
@@ -102,7 +105,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         case Left(value: final Failure failure):
           state = AuthState.error(failure.message);
         case Right(value: final UserEntity user):
-          state = AuthState.authenticated(user);
+          if (_isDriverUser(user)) {
+            state = AuthState.authenticated(user);
+          } else {
+            await _logoutUseCase();
+            state = AuthState.error(
+              'Esta aplicacion movil esta disponible solo para conductores.',
+            );
+          }
       }
     } catch (e) {
       state = AuthState.error('Error inesperado al iniciar sesión');
@@ -114,6 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String phone,
+    required String licenceNumber,
   }) async {
     state = const AuthState(type: AuthStateType.loading);
     try {
@@ -123,13 +134,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
           email: email,
           password: password,
           phone: phone,
+          licenceNumber: licenceNumber,
         ),
       );
       switch (result) {
         case Left(value: final Failure failure):
           state = AuthState.error(failure.message);
         case Right(value: final UserEntity user):
-          state = AuthState.authenticated(user);
+          if (_isDriverUser(user)) {
+            state = AuthState.authenticated(user);
+          } else {
+            await _logoutUseCase();
+            state = AuthState.error(
+              'La cuenta creada no pertenece a un conductor.',
+            );
+          }
       }
     } catch (e) {
       state = AuthState.error('Error inesperado al registrarse');
@@ -153,12 +172,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         case Left():
           state = const AuthState(type: AuthStateType.unauthenticated);
         case Right(value: final UserEntity user):
-          state = AuthState.authenticated(user);
+          if (_isDriverUser(user)) {
+            state = AuthState.authenticated(user);
+          } else {
+            await _logoutUseCase();
+            state = const AuthState(type: AuthStateType.unauthenticated);
+          }
       }
     } catch (_) {
       state = const AuthState(type: AuthStateType.unauthenticated);
     }
   }
+
+  bool _isDriverUser(UserEntity user) => user.role == 'driver';
 }
 
 final authNotifierProvider =

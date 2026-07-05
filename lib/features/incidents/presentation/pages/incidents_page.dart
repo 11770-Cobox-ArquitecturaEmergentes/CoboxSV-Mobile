@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
@@ -35,7 +36,6 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
 
   Future<void> _submit() async {
     if (_selectedType == null ||
-        _locationController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty) {
       return;
     }
@@ -47,14 +47,14 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
             title: _titleForType(_selectedType!),
             description: _descriptionController.text.trim(),
             dateTime: DateTime.now(),
-            location: AddressEntity(
-              street: _locationController.text.trim(),
-              city: 'Buenos Aires',
-              state: 'CABA',
-            ),
+            location: _locationController.text.trim().isEmpty
+                ? null
+                : AddressEntity(
+                    street: _locationController.text.trim(),
+                    city: '',
+                    state: '',
+                  ),
             severity: IncidentSeverity.medium,
-            routeId: '201',
-            reportedBy: 'Carlos',
           ),
         );
 
@@ -558,56 +558,60 @@ class _IncidentListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'INC-2026-${incident.id.padLeft(3, '0')}',
-                style: textTheme.titleLarge?.copyWith(
-                  color: AppColors.secondary,
-                  fontWeight: FontWeight.w700,
+    return InkWell(
+      onTap: () => context.push('/incidents/${incident.id}'),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  _displayIncidentCode(incident.id),
+                  style: textTheme.titleLarge?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              _IncidentStatusPill(status: incident.status),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            incident.title,
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.text,
-              fontWeight: FontWeight.w700,
+                const Spacer(),
+                _IncidentStatusPill(status: incident.status),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            incident.description,
-            style: textTheme.bodyMedium?.copyWith(color: AppColors.gray500),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.gray500),
-              const SizedBox(width: 6),
-              Text(
-                _formatDate(incident.dateTime),
-                style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
+            const SizedBox(height: 8),
+            Text(
+              incident.title,
+              style: textTheme.titleMedium?.copyWith(
+                color: AppColors.text,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 16),
-              const Icon(Icons.access_time_rounded, size: 14, color: AppColors.gray500),
-              const SizedBox(width: 6),
-              Text(
-                _formatTime(incident.dateTime),
-                style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              incident.description,
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.gray500),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.gray500),
+                const SizedBox(width: 6),
+                Text(
+                  _formatDate(incident.dateTime),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
+                ),
+                const SizedBox(width: 16),
+                const Icon(Icons.access_time_rounded, size: 14, color: AppColors.gray500),
+                const SizedBox(width: 6),
+                Text(
+                  _formatTime(incident.dateTime),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -623,6 +627,7 @@ class _IncidentStatusPill extends StatelessWidget {
     final (label, bg, fg) = switch (status) {
       IncidentStatus.resolved => ('Resuelto', const Color(0xFFE8F8EF), const Color(0xFF16A34A)),
       IncidentStatus.inProgress => ('En revision', const Color(0xFFFEF3C7), const Color(0xFFD97706)),
+      IncidentStatus.escalated => ('Escalado', const Color(0xFFFFE4E6), const Color(0xFFE11D48)),
       IncidentStatus.open => ('Abierto', const Color(0xFFEAF2FF), const Color(0xFF2563EB)),
       IncidentStatus.closed => ('Cerrado', const Color(0xFFF1F5F9), const Color(0xFF64748B)),
     };
@@ -712,4 +717,10 @@ String _formatTime(DateTime dateTime) {
   final hour = dateTime.hour.toString().padLeft(2, '0');
   final minute = dateTime.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
+}
+
+String _displayIncidentCode(String id) {
+  final normalized = id.replaceAll('-', '').toUpperCase();
+  final shortCode = normalized.length > 8 ? normalized.substring(0, 8) : normalized;
+  return 'INC-$shortCode';
 }

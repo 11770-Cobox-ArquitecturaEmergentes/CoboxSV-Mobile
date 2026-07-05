@@ -7,8 +7,6 @@ import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/utils/validators.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
-enum _LoginUserType { supervisor, conductor }
-
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -20,12 +18,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  _LoginUserType _selectedUserType = _LoginUserType.supervisor;
 
   @override
   void initState() {
     super.initState();
-    _applyDemoCredentials(_selectedUserType);
+    _applyDemoCredentials();
   }
 
   @override
@@ -48,11 +45,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       case AuthStateType.authenticated:
         ref.read(authStatusProvider.notifier).state = AuthStatus.authenticated;
         if (mounted) {
-          context.go(
-            _selectedUserType == _LoginUserType.supervisor
-                ? '/supervisor/dashboard'
-                : '/home',
-          );
+          context.go('/home');
         }
         break;
       case AuthStateType.error:
@@ -70,27 +63,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  void _selectUserType(_LoginUserType userType) {
-    setState(() {
-      _selectedUserType = userType;
-    });
-    _applyDemoCredentials(userType);
-  }
-
-  Future<void> _loginWithDemo(_LoginUserType userType) async {
-    _selectUserType(userType);
+  Future<void> _loginWithDemo() async {
+    _applyDemoCredentials();
     await _onLogin();
   }
 
-  void _applyDemoCredentials(_LoginUserType userType) {
-    switch (userType) {
-      case _LoginUserType.supervisor:
-        _emailController.text = 'supervisor@cobox.com';
-        break;
-      case _LoginUserType.conductor:
-        _emailController.text = 'conductor@cobox.com';
-        break;
-    }
+  void _applyDemoCredentials() {
+    _emailController.text = 'conductor@cobox.com';
     _passwordController.text = 'Demo123!';
   }
 
@@ -141,49 +120,68 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Selecciona tu tipo de usuario',
+                                        'Acceso para conductores',
                                         style: textTheme.bodyMedium?.copyWith(
                                           color: AppColors.gray500,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                       const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: _UserTypeCard(
-                                              title: 'Supervisor',
-                                              subtitle: 'de Flota',
-                                              icon: Icons.person_outline_rounded,
-                                              selected: _selectedUserType ==
-                                                  _LoginUserType.supervisor,
-                                              onTap: () => _selectUserType(
-                                                _LoginUserType.supervisor,
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF3FAF8),
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(
+                                            color: const Color(0xFFD9E2EC),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 42,
+                                              height: 42,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.secondary,
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.local_shipping_outlined,
+                                                color: AppColors.white,
+                                                size: 22,
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: _UserTypeCard(
-                                              title: 'Conductor',
-                                              subtitle: 'de Flota',
-                                              icon: Icons.local_shipping_outlined,
-                                              selected: _selectedUserType ==
-                                                  _LoginUserType.conductor,
-                                              onTap: () => _selectUserType(
-                                                _LoginUserType.conductor,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Conductor de flota',
+                                                    style: textTheme.titleSmall?.copyWith(
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.text,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'La app movil opera solo con cuentas de conductor.',
+                                                    style: textTheme.bodySmall?.copyWith(
+                                                      color: AppColors.gray500,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                       const SizedBox(height: 22),
                                       _LoginField(
                                         label: 'Correo electronico',
-                                        hintText: _selectedUserType ==
-                                                _LoginUserType.supervisor
-                                            ? 'supervisor@cobox.com'
-                                            : 'conductor@cobox.com',
+                                        hintText: 'conductor@cobox.com',
                                         controller: _emailController,
                                         keyboardType: TextInputType.emailAddress,
                                         textInputAction: TextInputAction.next,
@@ -207,6 +205,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                         isLoading: isLoading,
                                         onPressed: _onLogin,
                                       ),
+                                      const SizedBox(height: 16),
+                                      Center(
+                                        child: Wrap(
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          spacing: 4,
+                                          children: [
+                                            Text(
+                                              'No tienes cuenta?',
+                                              style: textTheme.bodyMedium?.copyWith(
+                                                color: AppColors.gray500,
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => context.go('/signup'),
+                                              style: TextButton.styleFrom(
+                                                padding: EdgeInsets.zero,
+                                                minimumSize: Size.zero,
+                                                tapTargetSize:
+                                                    MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                              child: const Text('Crear cuenta'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                       const SizedBox(height: 20),
                                       const Divider(
                                         color: Color(0xFFE2E8F0),
@@ -226,19 +249,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                         children: [
                                           Expanded(
                                             child: _DemoButton(
-                                              label: 'Demo Supervisor',
-                                              onTap: () => _loginWithDemo(
-                                                _LoginUserType.supervisor,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: _DemoButton(
                                               label: 'Demo Conductor',
-                                              onTap: () => _loginWithDemo(
-                                                _LoginUserType.conductor,
-                                              ),
+                                              onTap: _loginWithDemo,
                                             ),
                                           ),
                                         ],
@@ -324,78 +336,6 @@ class _LoginHeader extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _UserTypeCard extends StatelessWidget {
-  const _UserTypeCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          height: 118,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFF3FAF8) : AppColors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: selected ? AppColors.secondary : const Color(0xFFD9E2EC),
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.secondary : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: selected ? AppColors.white : AppColors.gray700,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.gray500,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

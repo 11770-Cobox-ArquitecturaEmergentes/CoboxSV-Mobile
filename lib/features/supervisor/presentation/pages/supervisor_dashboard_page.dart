@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:cobox_sv_mobile/features/profile/presentation/providers/profile_provider.dart';
+import 'package:cobox_sv_mobile/features/supervisor/presentation/providers/supervisor_provider.dart';
 
 enum _SupervisorSection {
   dashboard('Dashboard', Icons.grid_view_rounded),
@@ -40,6 +42,10 @@ class _SupervisorDashboardPageState
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final currentUser = ref.watch(authNotifierProvider).user;
+    final userName = currentUser?.name ?? 'Administrador';
+    final userRole = currentUser?.role ?? 'admin';
+    final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FC),
@@ -53,7 +59,11 @@ class _SupervisorDashboardPageState
                 children: [
                   _SupervisorTopBar(
                     onMenuTap: _openMenuSheet,
+                    onProfileTap: _openProfileSheet,
                     isMobile: true,
+                    userName: userName,
+                    userRole: _roleLabel(userRole),
+                    userInitial: userInitial,
                   ),
                   Expanded(
                     child: AnimatedSwitcher(
@@ -76,7 +86,11 @@ class _SupervisorDashboardPageState
                     children: [
                       _SupervisorTopBar(
                         onMenuTap: _openMenuSheet,
+                        onProfileTap: _openProfileSheet,
                         isMobile: false,
+                        userName: userName,
+                        userRole: _roleLabel(userRole),
+                        userInitial: userInitial,
                       ),
                       Expanded(
                         child: AnimatedSwitcher(
@@ -109,6 +123,17 @@ class _SupervisorDashboardPageState
           },
         );
       },
+    );
+  }
+
+  Future<void> _openProfileSheet() async {
+    ref.read(profileProvider.notifier).loadProfile();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const _SupervisorProfileSheet(),
     );
   }
 
@@ -167,6 +192,19 @@ class _SupervisorDashboardPageState
           textTheme: textTheme,
         );
     }
+  }
+}
+
+String _roleLabel(String role) {
+  switch (role.toLowerCase()) {
+    case 'supervisor':
+      return 'Supervisor';
+    case 'admin':
+      return 'Administrador';
+    case 'driver':
+      return 'Conductor';
+    default:
+      return role;
   }
 }
 
@@ -264,11 +302,19 @@ class _RailButton extends StatelessWidget {
 class _SupervisorTopBar extends StatelessWidget {
   const _SupervisorTopBar({
     required this.onMenuTap,
+    required this.onProfileTap,
     required this.isMobile,
+    required this.userName,
+    required this.userRole,
+    required this.userInitial,
   });
 
   final VoidCallback onMenuTap;
+  final VoidCallback onProfileTap;
   final bool isMobile;
+  final String userName;
+  final String userRole;
+  final String userInitial;
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +365,9 @@ class _SupervisorTopBar extends StatelessWidget {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
+                children: [
                 Text(
-                  'Admin Usuario',
+                  userName,
                   style: textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.text,
@@ -329,26 +375,33 @@ class _SupervisorTopBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Administrador',
+                  userRole,
                   style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
                 ),
               ],
             ),
             const SizedBox(width: 10),
           ],
-          Container(
-            width: isMobile ? 38 : 40,
-            height: isMobile ? 38 : 40,
-            decoration: const BoxDecoration(
-              color: AppColors.secondary,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'A',
-              style: textTheme.titleMedium?.copyWith(
-                color: AppColors.white,
-                fontWeight: FontWeight.w800,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onProfileTap,
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: isMobile ? 38 : 40,
+                height: isMobile ? 38 : 40,
+                decoration: const BoxDecoration(
+                  color: AppColors.secondary,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  userInitial,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ),
@@ -405,11 +458,13 @@ class _TopIconButton extends StatelessWidget {
   }
 }
 
-class _SupervisorDashboardView extends StatelessWidget {
+class _SupervisorDashboardView extends ConsumerWidget {
   const _SupervisorDashboardView();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final overviewAsync = ref.watch(supervisorOverviewProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 24),
       child: Column(
@@ -431,7 +486,11 @@ class _SupervisorDashboardView extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 20),
-          const _StatsGrid(),
+          overviewAsync.when(
+            data: (overview) => _StatsGrid(overview: overview),
+            loading: () => const _DashboardLoadingCard(),
+            error: (error, _) => _DashboardErrorCard(message: error.toString()),
+          ),
           const SizedBox(height: 18),
           const _LineChartCard(),
           const SizedBox(height: 18),
@@ -439,9 +498,243 @@ class _SupervisorDashboardView extends StatelessWidget {
           const SizedBox(height: 18),
           const _VehicleHealthCard(),
           const SizedBox(height: 18),
-          const _RouteEfficiencyCard(),
+          overviewAsync.maybeWhen(
+            data: (overview) => _RouteEfficiencyCard(overview: overview),
+            orElse: () => const _RouteEfficiencyCard(),
+          ),
           const SizedBox(height: 18),
-          const _LiveMapCard(),
+          overviewAsync.maybeWhen(
+            data: (overview) => _LiveMapCard(overview: overview),
+            orElse: () => const _LiveMapCard(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupervisorProfileSheet extends ConsumerWidget {
+  const _SupervisorProfileSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authUser = ref.watch(authNotifierProvider).user;
+    final profileState = ref.watch(profileProvider);
+    final profile = profileState.profile;
+    final displayName = profile?.name ?? authUser?.name ?? 'Usuario';
+    final displayRole = _roleLabel(profile?.role ?? authUser?.role ?? 'admin');
+    final displayEmail = profile?.email ?? authUser?.email ?? '-';
+    final displayPhone = profile?.phone ?? authUser?.phone ?? '-';
+    final vehicle = profile?.vehicle;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.gray300,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.secondary,
+                    child: Text(
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.text,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          displayRole,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.gray500,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              if (profileState.status == ProfileStateStatus.loading && profile == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
+                _ProfileInfoTile(
+                  icon: Icons.email_outlined,
+                  label: 'Correo',
+                  value: displayEmail,
+                ),
+                const SizedBox(height: 10),
+                _ProfileInfoTile(
+                  icon: Icons.call_outlined,
+                  label: 'Telefono',
+                  value: displayPhone,
+                ),
+                const SizedBox(height: 10),
+                _ProfileInfoTile(
+                  icon: Icons.badge_outlined,
+                  label: 'Licencia',
+                  value: profile?.licenseNumber ?? '-',
+                ),
+                const SizedBox(height: 10),
+                _ProfileInfoTile(
+                  icon: Icons.local_shipping_outlined,
+                  label: 'Vehiculo',
+                  value: vehicle == null
+                      ? '-'
+                      : '${vehicle.plate} · ${vehicle.brand} ${vehicle.model}',
+                ),
+              ],
+              if (profileState.error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  profileState.error!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.danger,
+                      ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ref.read(profileProvider.notifier).loadProfile();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.text,
+                        side: const BorderSide(color: Color(0xFFDCE5EF)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Recargar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await ref.read(authNotifierProvider.notifier).logout();
+                        ref.read(authStatusProvider.notifier).state =
+                            AuthStatus.unauthenticated;
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        foregroundColor: AppColors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout_rounded, size: 18),
+                      label: const Text('Cerrar sesion'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileInfoTile extends StatelessWidget {
+  const _ProfileInfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.secondary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.gray500,
+                      ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -4245,19 +4538,24 @@ class _ReportProgressRow extends StatelessWidget {
 }
 
 class _StatsGrid extends StatelessWidget {
-  const _StatsGrid();
+  const _StatsGrid({required this.overview});
+
+  final SupervisorOverview overview;
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      ('Total de vehiculos', '48', '4 nuevos', Icons.local_shipping_outlined, Color(0xFFE7F7F4), AppColors.secondary),
-      ('Vehiculos activos', '42', '87.5%', Icons.trending_up_rounded, Color(0xFFE8FBF0), Color(0xFF10B981)),
-      ('En mantenimiento', '6', null, Icons.build_outlined, Color(0xFFFFF4E5), AppColors.warning),
-      ('Conductores activos', '38', null, Icons.people_outline_rounded, Color(0xFFEEF4FF), AppColors.primary),
-      ('Ordenes activas', '156', '+12%', Icons.inventory_2_outlined, Color(0xFFE8FBF6), Color(0xFF14B8A6)),
-      ('Eficiencia de combustible', '8.2\nL/100km', '-5%', Icons.local_gas_station_outlined, Color(0xFFE7FBF5), Color(0xFF34D399)),
-      ('Utilizacion de flota', '92%', '+8%', Icons.monitor_heart_outlined, Color(0xFFEEF3FF), Color(0xFF3B82F6)),
-      ('SmartVision Score', '94', '+3 pts', Icons.psychology_alt_outlined, Color(0xFFEAF8F4), AppColors.secondary),
+    final utilization = overview.totalVehicles == 0
+        ? 0
+        : ((overview.activeVehicles / overview.totalVehicles) * 100).round();
+
+    final items = [
+      ('Total de vehiculos', '${overview.totalVehicles}', null, Icons.local_shipping_outlined, const Color(0xFFE7F7F4), AppColors.secondary),
+      ('Vehiculos activos', '${overview.activeVehicles}', '$utilization%', Icons.trending_up_rounded, const Color(0xFFE8FBF0), const Color(0xFF10B981)),
+      ('En mantenimiento', '${overview.maintenanceVehicles}', null, Icons.build_outlined, const Color(0xFFFFF4E5), AppColors.warning),
+      ('Conductores activos', '${overview.activeDrivers}', null, Icons.people_outline_rounded, const Color(0xFFEEF4FF), AppColors.primary),
+      ('Ordenes activas', '${overview.activeOrders}', null, Icons.inventory_2_outlined, const Color(0xFFE8FBF6), const Color(0xFF14B8A6)),
+      ('Rutas totales', '${overview.totalRoutes}', null, Icons.map_outlined, const Color(0xFFEEF3FF), const Color(0xFF3B82F6)),
+      ('Rutas en progreso', '${overview.routesInProgress}', null, Icons.alt_route_rounded, const Color(0xFFEAF8F4), AppColors.secondary),
     ];
 
     return Column(
@@ -4433,17 +4731,20 @@ class _VehicleHealthCard extends StatelessWidget {
 }
 
 class _RouteEfficiencyCard extends StatelessWidget {
-  const _RouteEfficiencyCard();
+  const _RouteEfficiencyCard({this.overview});
+
+  final SupervisorOverview? overview;
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      ('R-001', 92.0),
-      ('R-002', 85.0),
-      ('R-003', 88.0),
-      ('R-004', 76.0),
-      ('R-005', 82.0),
-    ];
+    final items = overview?.routeMetrics ??
+        const [
+          SupervisorRouteMetric(label: 'R-001', efficiency: 92),
+          SupervisorRouteMetric(label: 'R-002', efficiency: 85),
+          SupervisorRouteMetric(label: 'R-003', efficiency: 88),
+          SupervisorRouteMetric(label: 'R-004', efficiency: 76),
+          SupervisorRouteMetric(label: 'R-005', efficiency: 82),
+        ];
 
     return _DashboardCard(
       title: 'Eficiencia de rutas',
@@ -4457,7 +4758,7 @@ class _RouteEfficiencyCard extends StatelessWidget {
                     SizedBox(
                       width: 48,
                       child: Text(
-                        item.$1,
+                        item.label,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.gray600,
                             ),
@@ -4469,7 +4770,7 @@ class _RouteEfficiencyCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                         child: LinearProgressIndicator(
                           minHeight: 38,
-                          value: item.$2 / 100,
+                          value: item.efficiency / 100,
                           backgroundColor: const Color(0xFFF2F6FB),
                           valueColor: const AlwaysStoppedAnimation<Color>(
                             Color(0xFF10B981),
@@ -4481,7 +4782,7 @@ class _RouteEfficiencyCard extends StatelessWidget {
                     SizedBox(
                       width: 38,
                       child: Text(
-                        '${item.$2.toInt()}',
+                        '${item.efficiency.toInt()}',
                         textAlign: TextAlign.right,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.gray600,
@@ -4500,7 +4801,9 @@ class _RouteEfficiencyCard extends StatelessWidget {
 }
 
 class _LiveMapCard extends StatelessWidget {
-  const _LiveMapCard();
+  const _LiveMapCard({this.overview});
+
+  final SupervisorOverview? overview;
 
   @override
   Widget build(BuildContext context) {
@@ -4540,7 +4843,7 @@ class _LiveMapCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '42 vehiculos en seguimiento activo',
+                '${overview?.activeVehicles ?? 0} vehiculos en seguimiento activo',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.gray500,
                     ),
@@ -4548,6 +4851,37 @@ class _LiveMapCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardLoadingCard extends StatelessWidget {
+  const _DashboardLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _DashboardErrorCard extends StatelessWidget {
+  const _DashboardErrorCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      title: 'No se pudo cargar el dashboard',
+      child: Text(
+        message,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppColors.danger,
+            ),
       ),
     );
   }

@@ -34,7 +34,6 @@ class DioClient {
     _dio.interceptors.addAll([
       AuthInterceptor(
         secureStorage: secureStorage,
-        dio: _dio,
       ),
       LoggingInterceptor(logger: _logger),
       ErrorInterceptor(logger: _logger),

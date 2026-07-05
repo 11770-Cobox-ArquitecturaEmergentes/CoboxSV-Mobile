@@ -5,7 +5,8 @@ enum AppTab {
   planning(1, 'Planificaci\u00f3n', Icons.calendar_month_outlined, Icons.calendar_month_rounded),
   routes(2, 'Rutas', Icons.route_outlined, Icons.route_rounded),
   orders(3, '\u00d3rdenes', Icons.inventory_2_outlined, Icons.inventory_2_rounded),
-  profile(4, 'Perfil', Icons.person_outline, Icons.person);
+  incidents(4, 'Incidentes', Icons.warning_amber_outlined, Icons.warning_amber_rounded),
+  profile(5, 'Perfil', Icons.person_outline, Icons.person);
 
   const AppTab(this.tabIndex, this.label, this.icon, this.activeIcon);
 

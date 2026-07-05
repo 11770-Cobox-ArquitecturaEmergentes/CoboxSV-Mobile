@@ -35,6 +35,7 @@ class MockAuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
     required String phone,
+    required String licenceNumber,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
     _mockUserId++;

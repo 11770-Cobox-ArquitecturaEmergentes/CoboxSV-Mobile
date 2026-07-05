@@ -8,18 +8,17 @@ import 'package:cobox_sv_mobile/features/routes/domain/usecases/get_route_detail
 import 'package:cobox_sv_mobile/features/routes/domain/usecases/start_route_usecase.dart';
 import 'package:cobox_sv_mobile/features/routes/domain/usecases/complete_stop_usecase.dart';
 import 'package:cobox_sv_mobile/features/routes/data/datasource/route_remote_datasource.dart';
-import 'package:cobox_sv_mobile/features/routes/data/repository/mock_route_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/routes/data/repository/route_repository_impl.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
 final routeRemoteDataSourceProvider = Provider<RouteRemoteDataSource>((ref) {
-  return RouteRemoteDataSource(ref.watch(dioClientProvider));
+  return RouteRemoteDataSource(
+    ref.watch(dioClientProvider),
+    ref.watch(authLocalDataSourceProvider),
+  );
 });
 
 final routeRepositoryProvider = Provider<RouteRepository>((ref) {
-  if (ref.watch(useMockApiProvider)) {
-    return MockRouteRepositoryImpl();
-  }
   return RouteRepositoryImpl(
     ref.watch(routeRemoteDataSourceProvider),
     ref.watch(networkInfoProvider),
@@ -52,11 +51,18 @@ final routeDetailProvider = FutureProvider.autoDispose.family<RouteEntity, Strin
 
 final activeRouteProvider = FutureProvider.autoDispose<RouteEntity?>((ref) async {
   final routes = await ref.watch(getRoutesUseCaseProvider).call(date: DateTime.now());
-  return routes.cast<RouteEntity?>().firstWhere(
-        (r) => r!.status == 'IN_PROGRESS',
-        orElse: () => null,
-      );
+  return _pickCurrentRoute(routes);
 });
+
+RouteEntity? _pickCurrentRoute(List<RouteEntity> routes) {
+  for (final route in routes) {
+    if (route.status == 'IN_PROGRESS') return route;
+  }
+  for (final route in routes) {
+    if (route.status == 'PLANNED') return route;
+  }
+  return routes.isNotEmpty ? routes.first : null;
+}
 
 class RouteNotifier extends StateNotifier<AsyncValue<RouteEntity?>> {
   final StartRouteUseCase _startRoute;

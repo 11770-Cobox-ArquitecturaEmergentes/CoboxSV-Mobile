@@ -1,6 +1,8 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'package:cobox_sv_mobile/features/planning/domain/entities/plan_entity.dart';
+import 'package:cobox_sv_mobile/features/routes/data/models/route_model.dart';
+import 'package:cobox_sv_mobile/features/routes/domain/entities/route_entity.dart';
 
 part 'plan_model.g.dart';
 
@@ -66,5 +68,41 @@ class PlanModel {
       routeIds: entity.routeIds,
       notes: entity.notes,
     );
+  }
+
+  factory PlanModel.fromRouteModel(RouteModel route) {
+    return PlanModel.fromRouteEntity(route.toEntity());
+  }
+
+  factory PlanModel.fromRouteEntity(RouteEntity route) {
+    final referenceDate =
+        route.startTime ??
+        route.estimatedEndTime ??
+        route.actualEndTime ??
+        DateTime.now();
+
+    return PlanModel(
+      id: route.id,
+      title: route.name,
+      date: DateTime(
+        referenceDate.year,
+        referenceDate.month,
+        referenceDate.day,
+      ),
+      shift: _resolveShift(referenceDate),
+      status: route.status,
+      stopsCount: route.stops.length,
+      totalDistance: route.distance,
+      estimatedDuration: route.duration?.inMinutes ?? 0,
+      routeIds: [route.id],
+      notes: route.notes,
+    );
+  }
+
+  static String _resolveShift(DateTime dateTime) {
+    final hour = dateTime.hour;
+    if (hour < 12) return 'MORNING';
+    if (hour < 18) return 'AFTERNOON';
+    return 'NIGHT';
   }
 }

@@ -86,7 +86,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            'Backend sincronizado',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -114,36 +114,41 @@ class _RouteContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final progress = route.progress == 0 ? 0.65 : route.progress;
-    final currentStop = route.stops.firstWhere(
-      (stop) => stop.status == 'IN_PROGRESS',
-      orElse: () => route.stops.last,
-    );
+    final progress = _resolveProgress(route);
+    final currentStop = _resolveCurrentStop(route);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ActiveRouteCard(route: route, progress: progress),
         const SizedBox(height: 14),
-        _CurrentLocationCard(stop: currentStop),
+        if (currentStop != null)
+          _CurrentLocationCard(stop: currentStop)
+        else
+          const _NoStopsCard(),
         const SizedBox(height: 14),
         _SectionCard(
           title: 'Paradas (${route.stops.length})',
-          child: Column(
-            children: [
-              for (var i = 0; i < route.stops.length; i++)
-                _StopTimelineTile(
-                  stop: route.stops[i],
-                  isFirst: i == 0,
-                  isLast: i == route.stops.length - 1,
-                  onConfirm: route.stops[i].status == 'IN_PROGRESS'
-                      ? () => ref
-                          .read(routeNotifierProvider(route.id).notifier)
-                          .completeStop(route.id, route.stops[i].id)
-                      : null,
+          child: route.stops.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: _EmptyStopsState(),
+                )
+              : Column(
+                  children: [
+                    for (var i = 0; i < route.stops.length; i++)
+                      _StopTimelineTile(
+                        stop: route.stops[i],
+                        isFirst: i == 0,
+                        isLast: i == route.stops.length - 1,
+                        onConfirm: route.stops[i].status == 'IN_PROGRESS'
+                            ? () => ref
+                                .read(routeNotifierProvider(route.id).notifier)
+                                .completeStop(route.id, route.stops[i].id)
+                            : null,
+                      ),
+                  ],
                 ),
-            ],
-          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -184,6 +189,30 @@ class _RouteContent extends ConsumerWidget {
       ],
     );
   }
+}
+
+double _resolveProgress(RouteEntity route) {
+  if (route.stops.isNotEmpty) {
+    return route.progress == 0 && route.status == 'IN_PROGRESS'
+        ? 0.1
+        : route.progress;
+  }
+
+  switch (route.status) {
+    case 'COMPLETED':
+      return 1;
+    case 'IN_PROGRESS':
+      return 0.1;
+    default:
+      return 0;
+  }
+}
+
+StopEntity? _resolveCurrentStop(RouteEntity route) {
+  for (final stop in route.stops) {
+    if (stop.status == 'IN_PROGRESS') return stop;
+  }
+  return route.stops.isNotEmpty ? route.stops.first : null;
 }
 
 class _ActiveRouteCard extends StatelessWidget {
@@ -364,6 +393,58 @@ class _CurrentLocationCard extends StatelessWidget {
               ),
               icon: const Icon(Icons.near_me_outlined, size: 18),
               label: const Text('Abrir navegacion GPS'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoStopsCard extends StatelessWidget {
+  const _NoStopsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      decoration: _surfaceDecoration(),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF2FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ruta sin paradas cargadas',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'La ruta existe en backend, pero todavia no tiene pedidos asociados.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.gray500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -650,6 +731,26 @@ class _EmptyRouteState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _EmptyStopsState extends StatelessWidget {
+  const _EmptyStopsState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Icon(Icons.inventory_2_outlined, color: AppColors.gray500, size: 18),
+        SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Esta ruta aun no tiene pedidos o paradas asociadas.',
+            style: TextStyle(color: AppColors.gray500),
+          ),
+        ),
+      ],
     );
   }
 }

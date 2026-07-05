@@ -29,16 +29,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
-      appBar: const _DriverHeader(title: 'Perfil'),
+      appBar: _DriverHeader(
+        title: 'Perfil',
+        subtitle: profile?.vehicle?.plate ?? _displayRole(profile?.role) ?? 'Sin vehiculo',
+        initial: profile?.name.isNotEmpty == true
+            ? profile!.name[0].toUpperCase()
+            : 'U',
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(profileProvider.notifier).loadProfile(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
           child: profile == null
-              ? const Padding(
-                  padding: EdgeInsets.only(top: 60),
-                  child: Center(child: CircularProgressIndicator()),
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 60),
+                  child: Center(
+                    child: state.status == ProfileStateStatus.error
+                        ? Text(
+                            state.error ?? 'No se pudo cargar el perfil',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.danger,
+                                ),
+                          )
+                        : const CircularProgressIndicator(),
+                  ),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,9 +109,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    const _AchievementsSection(),
-                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -134,12 +147,31 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
   }
+
+  String? _displayRole(String? role) {
+    switch (role) {
+      case 'ROLE_MANAGER':
+        return 'Supervisor';
+      case 'ROLE_DRIVER':
+        return 'Conductor';
+      case 'ROLE_CLIENT':
+        return 'Cliente';
+      default:
+        return role;
+    }
+  }
 }
 
 class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
-  const _DriverHeader({required this.title});
+  const _DriverHeader({
+    required this.title,
+    required this.subtitle,
+    required this.initial,
+  });
 
   final String title;
+  final String subtitle;
+  final String initial;
 
   @override
   Size get preferredSize => const Size.fromHeight(74);
@@ -159,7 +191,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
         child: CircleAvatar(
           backgroundColor: AppColors.primary,
           child: Text(
-            'C',
+            initial,
             style: textTheme.titleSmall?.copyWith(
               color: AppColors.white,
               fontWeight: FontWeight.w700,
@@ -181,7 +213,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'ABC-1234',
+            subtitle,
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -283,37 +315,50 @@ class _ProfileStats extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 1.05,
-      children: const [
+      children: [
         _StatBox(
           icon: Icons.inventory_2_outlined,
-          value: '1245',
-          label: 'Entregas totales',
+          value: profile.vehicle != null ? '1' : '0',
+          label: 'Vehiculos asignados',
           iconColor: AppColors.secondary,
           iconBackground: Color(0xFFE8F6F4),
         ),
         _StatBox(
           icon: Icons.access_time_rounded,
-          value: '96%',
-          label: 'Puntualidad',
+          value: profile.isActive ? 'Activo' : 'Inactivo',
+          label: 'Estado',
           iconColor: Color(0xFF22C55E),
           iconBackground: Color(0xFFE8F8EF),
         ),
         _StatBox(
           icon: Icons.location_on_outlined,
-          value: '45.7k',
-          label: 'km recorridos',
+          value: profile.vehicle?.plate ?? '-',
+          label: 'Placa',
           iconColor: AppColors.primary,
           iconBackground: Color(0xFFEAF2FF),
         ),
         _StatBox(
           icon: Icons.calendar_month_outlined,
-          value: '3.5 anos',
-          label: 'Experiencia',
+          value: _roleLabel(profile.role),
+          label: 'Rol',
           iconColor: Color(0xFFF97316),
           iconBackground: Color(0xFFFFF1E8),
         ),
       ],
     );
+  }
+}
+
+String _roleLabel(String role) {
+  switch (role) {
+    case 'ROLE_MANAGER':
+      return 'Supervisor';
+    case 'ROLE_DRIVER':
+      return 'Conductor';
+    case 'ROLE_CLIENT':
+      return 'Cliente';
+    default:
+      return role;
   }
 }
 
@@ -458,123 +503,6 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AchievementsSection extends StatelessWidget {
-  const _AchievementsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: _surfaceDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Text(
-              'Logros y reconocimientos',
-              style: textTheme.titleLarge?.copyWith(
-                color: AppColors.text,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: const [
-                _AchievementTile(
-                  icon: Icons.workspace_premium_outlined,
-                  title: 'Conductor del mes',
-                  subtitle: 'Mayo 2026',
-                  color: Color(0xFFF59E0B),
-                ),
-                SizedBox(height: 12),
-                _AchievementTile(
-                  icon: Icons.inventory_2_outlined,
-                  title: '1000+ entregas',
-                  subtitle: 'Completadas',
-                  color: AppColors.primary,
-                ),
-                SizedBox(height: 12),
-                _AchievementTile(
-                  icon: Icons.access_time_rounded,
-                  title: 'Puntualidad',
-                  subtitle: '95% a tiempo',
-                  color: Color(0xFF22C55E),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AchievementTile extends StatelessWidget {
-  const _AchievementTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: textTheme.bodyMedium?.copyWith(color: AppColors.gray500),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

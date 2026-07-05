@@ -129,6 +129,8 @@ class IncidentCard extends StatelessWidget {
         return cs.error;
       case IncidentStatus.inProgress:
         return Colors.blue;
+      case IncidentStatus.escalated:
+        return Colors.deepOrange;
       case IncidentStatus.resolved:
         return Colors.green;
       case IncidentStatus.closed:
