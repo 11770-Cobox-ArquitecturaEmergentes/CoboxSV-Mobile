@@ -18,7 +18,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<ProfileEntity> getProfile() async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo cargar el perfil. Intenta nuevamente.',
+      );
     }
     try {
       final model = await remoteDataSource.getProfile();
@@ -31,7 +33,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<ProfileEntity> updateProfile(ProfileEntity profile) async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo guardar el perfil. Intenta nuevamente.',
+      );
     }
     try {
       final model = ProfileModel.fromEntity(profile);
@@ -45,7 +49,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<String> uploadPhoto(String filePath) async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo subir la foto. Intenta nuevamente.',
+      );
     }
     try {
       return await remoteDataSource.uploadPhoto(filePath);
@@ -57,7 +63,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> changePassword(String currentPassword, String newPassword) async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo cambiar la contrasena. Intenta nuevamente.',
+      );
     }
     try {
       await remoteDataSource.changePassword(currentPassword, newPassword);

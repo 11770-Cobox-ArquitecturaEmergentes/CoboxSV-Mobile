@@ -99,7 +99,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Rutas sincronizadas',
+            'Rutas del dia',
             style: textTheme.bodySmall?.copyWith(
               color: AppColors.gray500,
             ),
@@ -152,7 +152,7 @@ class _PlanningContent extends StatelessWidget {
           title: activeRoute != null ? 'Ruta en progreso' : 'Resumen operativo',
           message: activeRoute != null
               ? '${activeRoute.name} con ${activeRoute.stops.length} paradas.'
-              : 'Tienes ${routes.length} rutas registradas en el backend.',
+              : 'Tienes ${routes.length} rutas disponibles.',
         ),
         const SizedBox(height: 16),
         _RouteSummaryCard(
@@ -602,7 +602,7 @@ class _EmptyRoutesCard extends StatelessWidget {
       decoration: _surfaceDecoration(),
       padding: const EdgeInsets.all(18),
       child: const Text(
-        'No hay rutas registradas para este conductor en el backend.',
+        'No hay rutas disponibles para este conductor.',
         style: TextStyle(
           color: AppColors.gray500,
           fontSize: 15,

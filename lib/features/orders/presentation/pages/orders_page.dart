@@ -131,7 +131,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Backend sincronizado',
+            'Informacion actualizada',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],

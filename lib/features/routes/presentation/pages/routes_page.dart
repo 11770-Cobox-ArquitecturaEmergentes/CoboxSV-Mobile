@@ -99,7 +99,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Backend sincronizado',
+            'Informacion actualizada',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -452,7 +452,7 @@ class _NoStopsCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'La ruta existe en backend, pero todavia no tiene pedidos asociados.',
+                  'Esta ruta todavia no tiene pedidos asociados.',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.gray500,
                   ),

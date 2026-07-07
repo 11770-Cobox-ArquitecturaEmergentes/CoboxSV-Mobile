@@ -5,16 +5,16 @@ class MockNotificationRepositoryImpl implements NotificationRepository {
   final List<NotificationEntity> _notifications = [
     NotificationEntity(
       id: '1',
-      title: 'Sincronización parcial',
-      body: 'Notificaciones reales aún no están conectadas al backend.',
+      title: 'Notificaciones activas',
+      body: 'Recibiras nuevas alertas cuando haya actividad disponible.',
       type: 'system',
       isRead: false,
       createdAt: DateTime(2026, 7, 3, 9, 0),
     ),
     NotificationEntity(
       id: '2',
-      title: 'Modo híbrido',
-      body: 'Autenticación, rutas y órdenes ya usan el backend real.',
+      title: 'Informacion actualizada',
+      body: 'Tu informacion principal esta lista para la operacion.',
       type: 'system',
       isRead: true,
       createdAt: DateTime(2026, 7, 3, 8, 30),
