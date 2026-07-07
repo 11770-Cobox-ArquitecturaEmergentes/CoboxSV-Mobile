@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/routes/domain/entities/route_entity.dart';
 import 'package:cobox_sv_mobile/features/routes/presentation/providers/route_provider.dart';
 
@@ -16,25 +17,38 @@ class PlanningPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: const _DriverHeader(title: 'Planificar'),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.refresh(routesProvider(null).future);
-        },
-        child: routesAsync.when(
-          loading: () => const _LoadingRoutesView(),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-            children: [
-              const _TopPlanningCard(),
-              const SizedBox(height: 16),
-              _PlanningInfoCard(
-                title: 'No se pudieron cargar las rutas',
-                message: error.toString(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              await ref.refresh(routesProvider(null).future);
+            },
+            child: routesAsync.when(
+              loading: () => _LoadingRoutesView(
+                horizontalPadding: horizontalPadding,
               ),
-            ],
-          ),
-          data: (routes) => _PlanningContent(routes: routes),
-        ),
+              error: (error, _) => ListView(
+                padding:
+                    EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
+                children: [
+                  const _TopPlanningCard(),
+                  const SizedBox(height: 16),
+                  _PlanningInfoCard(
+                    title: 'No se pudieron cargar las rutas',
+                    message: error.toString(),
+                  ),
+                ],
+              ),
+              data: (routes) => _PlanningContent(
+                routes: routes,
+                horizontalPadding: horizontalPadding,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -109,9 +123,13 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _PlanningContent extends StatelessWidget {
-  const _PlanningContent({required this.routes});
+  const _PlanningContent({
+    required this.routes,
+    required this.horizontalPadding,
+  });
 
   final List<RouteEntity> routes;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +144,7 @@ class _PlanningContent extends StatelessWidget {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
       children: [
         const _TopPlanningCard(),
         const SizedBox(height: 16),
@@ -167,15 +185,18 @@ class _PlanningContent extends StatelessWidget {
 }
 
 class _LoadingRoutesView extends StatelessWidget {
-  const _LoadingRoutesView();
+  const _LoadingRoutesView({required this.horizontalPadding});
+
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      physics: AlwaysScrollableScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
       children: [
-        SizedBox(height: 180),
-        Center(child: CircularProgressIndicator()),
+        const SizedBox(height: 180),
+        const Center(child: CircularProgressIndicator()),
       ],
     );
   }

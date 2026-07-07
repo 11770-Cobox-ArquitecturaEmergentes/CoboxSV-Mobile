@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
 import 'package:cobox_sv_mobile/features/incidents/presentation/providers/incident_provider.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/address_entity.dart';
@@ -76,66 +77,74 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: const _DriverHeader(title: 'Incidentes'),
-      body: RefreshIndicator(
-        onRefresh: notifier.refresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!_showForm)
-                _ReportEntryCard(
-                  onTap: () {
-                    setState(() {
-                      _showForm = true;
-                    });
-                  },
-                )
-              else
-                _ReportFormCard(
-                  selectedType: _selectedType,
-                  locationController: _locationController,
-                  descriptionController: _descriptionController,
-                  onTypeChanged: (value) {
-                    setState(() {
-                      _selectedType = value;
-                    });
-                  },
-                  onCancel: () {
-                    setState(() {
-                      _showForm = false;
-                    });
-                  },
-                  onSubmit: _submit,
-                ),
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'Mis incidentes reportados',
-                child: Column(
-                  children: [
-                    if (state.isLoading && state.incidents.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: LinearProgressIndicator(),
-                      )
-                    else if (state.incidents.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: _EmptyIncidents(),
-                      )
-                    else
-                      for (var i = 0; i < state.incidents.length; i++) ...[
-                        _IncidentListTile(incident: state.incidents[i]),
-                        if (i != state.incidents.length - 1)
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+
+          return RefreshIndicator(
+            onRefresh: notifier.refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding:
+                  EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!_showForm)
+                    _ReportEntryCard(
+                      onTap: () {
+                        setState(() {
+                          _showForm = true;
+                        });
+                      },
+                    )
+                  else
+                    _ReportFormCard(
+                      selectedType: _selectedType,
+                      locationController: _locationController,
+                      descriptionController: _descriptionController,
+                      onTypeChanged: (value) {
+                        setState(() {
+                          _selectedType = value;
+                        });
+                      },
+                      onCancel: () {
+                        setState(() {
+                          _showForm = false;
+                        });
+                      },
+                      onSubmit: _submit,
+                    ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    title: 'Mis incidentes reportados',
+                    child: Column(
+                      children: [
+                        if (state.isLoading && state.incidents.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: LinearProgressIndicator(),
+                          )
+                        else if (state.incidents.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: _EmptyIncidents(),
+                          )
+                        else
+                          for (var i = 0; i < state.incidents.length; i++) ...[
+                            _IncidentListTile(incident: state.incidents[i]),
+                            if (i != state.incidents.length - 1)
+                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                          ],
                       ],
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

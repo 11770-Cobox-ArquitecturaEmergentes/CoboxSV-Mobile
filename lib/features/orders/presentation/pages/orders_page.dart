@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/order_entity.dart';
 import 'package:cobox_sv_mobile/features/orders/presentation/providers/order_provider.dart';
 import 'package:cobox_sv_mobile/shared/enums/order_status.dart';
@@ -28,50 +29,58 @@ class _OrdersPageState extends ConsumerState<OrdersPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: const _DriverHeader(title: 'Ordenes'),
-      body: RefreshIndicator(
-        onRefresh: notifier.refresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          child: Column(
-            children: [
-              _OrdersSummaryCard(orders: state.orders),
-              const SizedBox(height: 14),
-              if (state.isLoading && state.orders.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: LinearProgressIndicator(),
-                ),
-              if (state.orders.isEmpty && !state.isLoading)
-                const _EmptyOrdersState()
-              else
-                ...List.generate(state.orders.length, (index) {
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index == state.orders.length - 1 ? 0 : 14,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+
+          return RefreshIndicator(
+            onRefresh: notifier.refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding:
+                  EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
+              child: Column(
+                children: [
+                  _OrdersSummaryCard(orders: state.orders),
+                  const SizedBox(height: 14),
+                  if (state.isLoading && state.orders.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: LinearProgressIndicator(),
                     ),
-                    child: _OrderCard(
-                      order: state.orders[index],
-                      onPrimaryAction: () async {
-                        final nextStatus = switch (state.orders[index].status) {
-                          OrderStatus.pending => OrderStatus.assigned,
-                          OrderStatus.assigned => OrderStatus.inProgress,
-                          OrderStatus.inProgress => OrderStatus.inProgress,
-                          _ => state.orders[index].status,
-                        };
-                        if (nextStatus == state.orders[index].status) return;
-                        await notifier.updateStatus(
-                          id: state.orders[index].id,
-                          status: nextStatus,
-                          notes: state.orders[index].notes,
-                        );
-                      },
-                    ),
-                  );
-                }),
-            ],
-          ),
-        ),
+                  if (state.orders.isEmpty && !state.isLoading)
+                    const _EmptyOrdersState()
+                  else
+                    ...List.generate(state.orders.length, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == state.orders.length - 1 ? 0 : 14,
+                        ),
+                        child: _OrderCard(
+                          order: state.orders[index],
+                          onPrimaryAction: () async {
+                            final nextStatus = switch (state.orders[index].status) {
+                              OrderStatus.pending => OrderStatus.assigned,
+                              OrderStatus.assigned => OrderStatus.inProgress,
+                              OrderStatus.inProgress => OrderStatus.inProgress,
+                              _ => state.orders[index].status,
+                            };
+                            if (nextStatus == state.orders[index].status) return;
+                            await notifier.updateStatus(
+                              id: state.orders[index].id,
+                              status: nextStatus,
+                              notes: state.orders[index].notes,
+                            );
+                          },
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
