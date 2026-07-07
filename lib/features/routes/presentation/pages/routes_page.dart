@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/routes/domain/entities/route_entity.dart';
 import 'package:cobox_sv_mobile/features/routes/domain/entities/stop_entity.dart';
 import 'package:cobox_sv_mobile/features/routes/presentation/providers/route_provider.dart';
@@ -16,26 +17,38 @@ class RoutesPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: const _DriverHeader(title: 'Ruta'),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(activeRouteProvider);
-          ref.invalidate(routesProvider(null));
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(activeRouteProvider);
+              ref.invalidate(routesProvider(null));
+            },
+            child: activeRouteAsync.when(
+              data: (route) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  14,
+                  horizontalPadding,
+                  24,
+                ),
+                child: route == null
+                    ? const _EmptyRouteState()
+                    : _RouteContent(route: route),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.all(horizontalPadding),
+                child: const _EmptyRouteState(),
+              ),
+            ),
+          );
         },
-        child: activeRouteAsync.when(
-          data: (route) => SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-            child: route == null
-                ? const _EmptyRouteState()
-                : _RouteContent(route: route),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: const _EmptyRouteState(),
-          ),
-        ),
       ),
     );
   }
@@ -86,7 +99,7 @@ class _DriverHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Backend sincronizado',
+            'Informacion actualizada',
             style: textTheme.bodySmall?.copyWith(color: AppColors.gray500),
           ),
         ],
@@ -439,7 +452,7 @@ class _NoStopsCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'La ruta existe en backend, pero todavia no tiene pedidos asociados.',
+                  'Esta ruta todavia no tiene pedidos asociados.',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.gray500,
                   ),

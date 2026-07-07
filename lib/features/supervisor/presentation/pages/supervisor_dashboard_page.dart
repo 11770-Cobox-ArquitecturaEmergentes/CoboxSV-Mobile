@@ -5813,7 +5813,7 @@ class _SupervisorPlaceholderView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Vista mockeada lista para conectar luego con microservicios.',
+                'Vista preparada para seguimiento operativo.',
                 style: textTheme.bodyLarge?.copyWith(
                   color: AppColors.gray600,
                   height: 1.45,

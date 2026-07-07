@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/core/utils/validators.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 
@@ -86,193 +87,195 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final horizontalPadding = adaptivePagePadding(constraints.maxWidth);
             return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, 24, 20, 24 + bottomInset),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                24,
+                horizontalPadding,
+                24 + bottomInset,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 390),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.black.withValues(alpha: 0.08),
-                                blurRadius: 28,
-                                offset: const Offset(0, 18),
-                              ),
-                            ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.08),
+                            blurRadius: 28,
+                            offset: const Offset(0, 18),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _LoginHeader(textTheme: textTheme),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(26, 24, 26, 28),
-                                child: Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Acceso para conductores',
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          color: AppColors.gray500,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _LoginHeader(textTheme: textTheme),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(26, 24, 26, 28),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Acceso para conductores',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.gray500,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3FAF8),
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                        color: const Color(0xFFD9E2EC),
                                       ),
-                                      const SizedBox(height: 16),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF3FAF8),
-                                          borderRadius: BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color: const Color(0xFFD9E2EC),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 42,
+                                          height: 42,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.secondary,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Icon(
+                                            Icons.local_shipping_outlined,
+                                            color: AppColors.white,
+                                            size: 22,
                                           ),
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 42,
-                                              height: 42,
-                                              decoration: BoxDecoration(
-                                                color: AppColors.secondary,
-                                                borderRadius: BorderRadius.circular(12),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Conductor de flota',
+                                                style: textTheme.titleSmall?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.text,
+                                                ),
                                               ),
-                                              child: const Icon(
-                                                Icons.local_shipping_outlined,
-                                                color: AppColors.white,
-                                                size: 22,
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'La app movil opera solo con cuentas de conductor.',
+                                                style: textTheme.bodySmall?.copyWith(
+                                                  color: AppColors.gray500,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Conductor de flota',
-                                                    style: textTheme.titleSmall?.copyWith(
-                                                      fontWeight: FontWeight.w700,
-                                                      color: AppColors.text,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    'La app movil opera solo con cuentas de conductor.',
-                                                    style: textTheme.bodySmall?.copyWith(
-                                                      color: AppColors.gray500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 22),
-                                      _LoginField(
-                                        label: 'Correo electronico',
-                                        hintText: 'conductor@cobox.com',
-                                        controller: _emailController,
-                                        keyboardType: TextInputType.emailAddress,
-                                        textInputAction: TextInputAction.next,
-                                        validator: validateEmail,
-                                        prefixIcon: Icons.person_outline_rounded,
-                                      ),
-                                      const SizedBox(height: 14),
-                                      _LoginField(
-                                        label: 'Contrasena',
-                                        hintText: 'Ingresa tu contrasena',
-                                        controller: _passwordController,
-                                        obscureText: true,
-                                        textInputAction: TextInputAction.done,
-                                        validator: validatePassword,
-                                        prefixIcon: Icons.lock_outline_rounded,
-                                        onSubmitted: (_) => _onLogin(),
-                                      ),
-                                      const SizedBox(height: 18),
-                                      _PrimaryActionButton(
-                                        label: 'Iniciar sesion',
-                                        isLoading: isLoading,
-                                        onPressed: _onLogin,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Center(
-                                        child: Wrap(
-                                          crossAxisAlignment: WrapCrossAlignment.center,
-                                          spacing: 4,
-                                          children: [
-                                            Text(
-                                              'No tienes cuenta?',
-                                              style: textTheme.bodyMedium?.copyWith(
-                                                color: AppColors.gray500,
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => context.go('/signup'),
-                                              style: TextButton.styleFrom(
-                                                padding: EdgeInsets.zero,
-                                                minimumSize: Size.zero,
-                                                tapTargetSize:
-                                                    MaterialTapTargetSize.shrinkWrap,
-                                              ),
-                                              child: const Text('Crear cuenta'),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      const Divider(
-                                        color: Color(0xFFE2E8F0),
-                                        thickness: 1,
-                                      ),
-                                      const SizedBox(height: 18),
-                                      Center(
-                                        child: Text(
-                                          'Acceso rapido de demostracion',
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 22),
+                                  _LoginField(
+                                    label: 'Correo electronico',
+                                    hintText: 'conductor@cobox.com',
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validator: validateEmail,
+                                    prefixIcon: Icons.person_outline_rounded,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _LoginField(
+                                    label: 'Contrasena',
+                                    hintText: 'Ingresa tu contrasena',
+                                    controller: _passwordController,
+                                    obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    validator: validatePassword,
+                                    prefixIcon: Icons.lock_outline_rounded,
+                                    onSubmitted: (_) => _onLogin(),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  _PrimaryActionButton(
+                                    label: 'Iniciar sesion',
+                                    isLoading: isLoading,
+                                    onPressed: _onLogin,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 4,
+                                      children: [
+                                        Text(
+                                          'No tienes cuenta?',
                                           style: textTheme.bodyMedium?.copyWith(
                                             color: AppColors.gray500,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: _DemoButton(
-                                              label: 'Demo Conductor',
-                                              onTap: _loginWithDemo,
-                                            ),
+                                        TextButton(
+                                          onPressed: () => context.go('/signup'),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            minimumSize: Size.zero,
+                                            tapTargetSize:
+                                                MaterialTapTargetSize.shrinkWrap,
                                           ),
-                                        ],
+                                          child: const Text('Crear cuenta'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Divider(
+                                    color: Color(0xFFE2E8F0),
+                                    thickness: 1,
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Center(
+                                    child: Text(
+                                      'Acceso rapido de demostracion',
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: AppColors.gray500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _DemoButton(
+                                          label: 'Demo Conductor',
+                                          onTap: _loginWithDemo,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          '(c) 2026 CoBox SmartVision. Todos los derechos',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.gray500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 18),
+                    Text(
+                      '(c) 2026 CoBox SmartVision. Todos los derechos',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.gray500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             );

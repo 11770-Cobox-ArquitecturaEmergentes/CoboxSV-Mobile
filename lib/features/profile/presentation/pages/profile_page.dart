@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/app/providers.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/entities/profile_entity.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/entities/vehicle_entity.dart';
@@ -36,101 +37,114 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ? profile!.name[0].toUpperCase()
             : 'U',
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(profileProvider.notifier).loadProfile(),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          child: profile == null
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 60),
-                  child: Center(
-                    child: state.status == ProfileStateStatus.error
-                        ? Text(
-                            state.error ?? 'No se pudo cargar el perfil',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.danger,
-                                ),
-                          )
-                        : const CircularProgressIndicator(),
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ProfileHero(profile: profile),
-                    const SizedBox(height: 16),
-                    _ProfileStats(profile: profile),
-                    const SizedBox(height: 16),
-                    _InfoSection(
-                      title: 'Informacion personal',
-                      items: [
-                        _InfoItemData(
-                          icon: Icons.email_outlined,
-                          label: 'Email',
-                          value: profile.email,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+
+          return RefreshIndicator(
+            onRefresh: () => ref.read(profileProvider.notifier).loadProfile(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding:
+                  EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
+              child: profile == null
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 60),
+                      child: Center(
+                        child: state.status == ProfileStateStatus.error
+                            ? Text(
+                                state.error ?? 'No se pudo cargar el perfil',
+                                textAlign: TextAlign.center,
+                                style:
+                                    Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.danger,
+                                        ),
+                              )
+                            : const CircularProgressIndicator(),
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ProfileHero(profile: profile),
+                        const SizedBox(height: 16),
+                        _ProfileStats(
+                          profile: profile,
+                          availableWidth:
+                              constraints.maxWidth - (horizontalPadding * 2),
                         ),
-                        _InfoItemData(
-                          icon: Icons.call_outlined,
-                          label: 'Telefono',
-                          value: profile.phone ?? '-',
+                        const SizedBox(height: 16),
+                        _InfoSection(
+                          title: 'Informacion personal',
+                          items: [
+                            _InfoItemData(
+                              icon: Icons.email_outlined,
+                              label: 'Email',
+                              value: profile.email,
+                            ),
+                            _InfoItemData(
+                              icon: Icons.call_outlined,
+                              label: 'Telefono',
+                              value: profile.phone ?? '-',
+                            ),
+                            _InfoItemData(
+                              icon: Icons.badge_outlined,
+                              label: 'Licencia de conducir',
+                              value: profile.licenseNumber ?? '-',
+                            ),
+                            _InfoItemData(
+                              icon: Icons.calendar_today_outlined,
+                              label: 'Vencimiento licencia',
+                              value: _formatDate(profile.licenseExpiry),
+                            ),
+                          ],
                         ),
-                        _InfoItemData(
-                          icon: Icons.badge_outlined,
-                          label: 'Licencia de conducir',
-                          value: profile.licenseNumber ?? '-',
+                        const SizedBox(height: 16),
+                        _InfoSection(
+                          title: 'Vehiculo asignado',
+                          items: [
+                            _InfoItemData(
+                              icon: Icons.local_shipping_outlined,
+                              label: 'Placa',
+                              value: profile.vehicle?.plate ?? '-',
+                            ),
+                            _InfoItemData(
+                              icon: Icons.inventory_2_outlined,
+                              label: 'Modelo',
+                              value: _vehicleModel(profile.vehicle),
+                            ),
+                            _InfoItemData(
+                              icon: Icons.local_shipping_outlined,
+                              label: 'Tipo',
+                              value: profile.vehicle?.type ?? '-',
+                            ),
+                          ],
                         ),
-                        _InfoItemData(
-                          icon: Icons.calendar_today_outlined,
-                          label: 'Vencimiento licencia',
-                          value: _formatDate(profile.licenseExpiry),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _InfoSection(
-                      title: 'Vehiculo asignado',
-                      items: [
-                        _InfoItemData(
-                          icon: Icons.local_shipping_outlined,
-                          label: 'Placa',
-                          value: profile.vehicle?.plate ?? '-',
-                        ),
-                        _InfoItemData(
-                          icon: Icons.inventory_2_outlined,
-                          label: 'Modelo',
-                          value: _vehicleModel(profile.vehicle),
-                        ),
-                        _InfoItemData(
-                          icon: Icons.local_shipping_outlined,
-                          label: 'Tipo',
-                          value: profile.vehicle?.type ?? '-',
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          await ref.read(authNotifierProvider.notifier).logout();
-                          ref.read(authStatusProvider.notifier).state =
-                              AuthStatus.unauthenticated;
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.danger,
-                          side: const BorderSide(color: AppColors.danger),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              await ref.read(authNotifierProvider.notifier).logout();
+                              ref.read(authStatusProvider.notifier).state =
+                                  AuthStatus.unauthenticated;
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                              side: const BorderSide(color: AppColors.danger),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Cerrar sesion'),
                           ),
                         ),
-                        child: const Text('Cerrar sesion'),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -302,19 +316,35 @@ class _ProfileHero extends StatelessWidget {
 }
 
 class _ProfileStats extends StatelessWidget {
-  const _ProfileStats({required this.profile});
+  const _ProfileStats({
+    required this.profile,
+    required this.availableWidth,
+  });
 
   final ProfileEntity profile;
+  final double availableWidth;
 
   @override
   Widget build(BuildContext context) {
+    final columns = adaptiveGridColumns(
+      availableWidth,
+      compact: 2,
+      medium: 2,
+      expanded: 4,
+    );
+    final aspectRatio = availableWidth >= 1100
+        ? 1.35
+        : availableWidth >= 700
+            ? 1.15
+            : 1.05;
+
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: columns,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.05,
+      childAspectRatio: aspectRatio,
       children: [
         _StatBox(
           icon: Icons.inventory_2_outlined,

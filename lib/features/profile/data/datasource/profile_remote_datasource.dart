@@ -56,7 +56,7 @@ class ProfileRemoteDataSource {
 
   Future<ProfileModel> updateProfile(Map<String, dynamic> data) async {
     throw const AppException(
-      'El backend actual no expone actualizacion de perfil',
+      'La edicion de perfil no esta disponible por el momento',
     );
   }
 
@@ -66,7 +66,7 @@ class ProfileRemoteDataSource {
       throw const AppException('File not found');
     }
     throw const AppException(
-      'El backend actual no expone carga de foto de perfil',
+      'La carga de foto de perfil no esta disponible por el momento',
     );
   }
 
@@ -75,7 +75,7 @@ class ProfileRemoteDataSource {
     String newPassword,
   ) async {
     throw const AppException(
-      'El backend actual no expone cambio de contrasena',
+      'El cambio de contrasena no esta disponible por el momento',
     );
   }
 

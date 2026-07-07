@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
 import 'package:cobox_sv_mobile/shared/enums/incident_type.dart';
 import 'package:cobox_sv_mobile/shared/widgets/primary_button.dart';
@@ -13,7 +14,6 @@ class CreateIncidentPage extends StatefulWidget {
 class _CreateIncidentPageState extends State<CreateIncidentPage> {
   IncidentType _type = IncidentType.other;
   final _descriptionController = TextEditingController();
-
 
   @override
   void dispose() {
@@ -30,21 +30,21 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Cámara'),
+              title: const Text('Camara'),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Funcionalidad próximamente')),
+                  const SnackBar(content: Text('Funcionalidad proximamente')),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galería'),
+              title: const Text('Galeria'),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Funcionalidad próximamente')),
+                  const SnackBar(content: Text('Funcionalidad proximamente')),
                 );
               },
             ),
@@ -63,148 +63,167 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
       appBar: AppBar(
         title: const Text('Nueva Incidencia'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tipo de Incidencia',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = adaptivePagePadding(constraints.maxWidth);
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              16,
+              horizontalPadding,
+              24,
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: IncidentType.values.map((type) {
-                final isSelected = _type == type;
-                return ChoiceChip(
-                  selected: isSelected,
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(type.icon, size: 18),
-                      const SizedBox(width: 6),
-                      Text(type.label),
-                    ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tipo de Incidencia',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
                   ),
-                  onSelected: (_) => setState(() => _type = type),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            AppTextfield(
-              controller: _descriptionController,
-              label: 'Descripción',
-              hint: 'Describe los detalles de la incidencia...',
-              maxLines: 5,
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Evidencia fotográfica',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    left: index == 0 ? 0 : 12,
-                    right: index == 2 ? 0 : 12,
-                  ),
-                  child: _PhotoSlot(onTap: _showPhotoSourcePicker),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.my_location, color: cs.primary, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: IncidentType.values.map((type) {
+                    final isSelected = _type == type;
+                    return ChoiceChip(
+                      selected: isSelected,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Ubicación actual',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '-34.6037, -58.3816',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
+                          Icon(type.icon, size: 18),
+                          const SizedBox(width: 6),
+                          Text(type.label),
                         ],
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('Actualizar ubicación'),
-                    ),
-                  ],
+                      onSelected: (_) => setState(() => _type = type),
+                    );
+                  }).toList(),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Fecha',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outline.withValues(alpha: 0.5),
+                const SizedBox(height: 16),
+                AppTextfield(
+                  controller: _descriptionController,
+                  label: 'Descripcion',
+                  hint: 'Describe los detalles de la incidencia...',
+                  maxLines: 5,
+                  textCapitalization: TextCapitalization.sentences,
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 18, color: cs.onSurfaceVariant),
-                  const SizedBox(width: 12),
-                  Text(
-                    '17/06/2026',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurface),
+                const SizedBox(height: 16),
+                Text(
+                  'Evidencia fotografica',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: List.generate(
+                    3,
+                    (_) => _PhotoSlot(onTap: _showPhotoSourcePicker),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.my_location, color: cs.primary, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ubicacion actual',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '-34.6037, -58.3816',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {},
+                          child: const Text('Actualizar ubicacion'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Fecha',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: cs.outline.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 18,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '17/06/2026',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: 'Reportar Incidencia',
+                  fullWidth: true,
+                  onPressed: () {},
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'Reportar Incidencia',
-              fullWidth: true,
-              onPressed: () {},
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -242,9 +261,9 @@ class _PhotoSlot extends StatelessWidget {
                 Text(
                   'Tomar foto',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 10,
-                  ),
+                        color: cs.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
                 ),
               ],
             ),
@@ -259,42 +278,39 @@ class _DashedBorderPainter extends CustomPainter {
   final Color color;
   final double borderRadius;
 
-  _DashedBorderPainter({
-    required this.color,
-    this.borderRadius = 12,
-  });
+  _DashedBorderPainter({required this.color, required this.borderRadius});
 
   @override
   void paint(Canvas canvas, Size size) {
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1
+      ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final rect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(borderRadius),
+    );
+    final path = Path()..addRRect(rect);
 
-    final dashedPath = _createDashedPath(path, 5, 4);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _createDashedPath(Path source, double dashLength, double gapLength) {
-    final metrics = source.computeMetrics();
-    final result = Path();
-    for (final metric in metrics) {
-      double distance = 0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
       while (distance < metric.length) {
-        final end = (distance + dashLength).clamp(0, metric.length).toDouble();
-        result.addPath(metric.extractPath(distance, end), Offset.zero);
-        distance += dashLength + gapLength;
+        final nextDistance = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, nextDistance),
+          paint,
+        );
+        distance += dashWidth + dashSpace;
       }
     }
-    return result;
   }
 
   @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.borderRadius != borderRadius;
+  }
 }

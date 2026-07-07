@@ -116,7 +116,9 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.receiveTimeout:
         return TimeoutException('Request timed out. Please try again.');
       case DioExceptionType.connectionError:
-        return NetworkException('No internet connection.');
+        return NetworkException(
+          'No se pudo completar la operacion. Intenta nuevamente.',
+        );
       case DioExceptionType.cancel:
         return AppException('Request was cancelled.');
       case DioExceptionType.badResponse:
@@ -146,7 +148,9 @@ class ErrorInterceptor extends Interceptor {
         return AppException('Invalid server certificate.');
       case DioExceptionType.unknown:
         if (err.message != null && err.message!.contains('SocketException')) {
-          return NetworkException('No internet connection.');
+          return NetworkException(
+            'No se pudo completar la operacion. Intenta nuevamente.',
+          );
         }
         return AppException(err.message ?? 'An unexpected error occurred.');
     }

@@ -49,7 +49,8 @@ String getErrorMessage(Failure failure) {
     AuthFailure _ => failure.message.isNotEmpty
         ? failure.message
         : 'Authentication failed. Please login again.',
-    NetworkFailure _ => 'No internet connection. Please check your network settings.',
+    NetworkFailure _ =>
+        'No se pudo completar la operacion. Intenta nuevamente.',
     ValidationFailure _ => failure.message.isNotEmpty
         ? failure.message
         : 'Please review your input and try again.',

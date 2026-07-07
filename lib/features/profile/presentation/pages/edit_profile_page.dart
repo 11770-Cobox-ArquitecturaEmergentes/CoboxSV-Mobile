@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/core/utils/validators.dart';
+import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
 import 'package:cobox_sv_mobile/features/profile/domain/entities/profile_entity.dart';
 import 'package:cobox_sv_mobile/features/profile/presentation/providers/profile_provider.dart';
 
@@ -59,18 +60,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     try {
       await ref.read(profileProvider.notifier).updateProfile(updated);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil actualizado correctamente')),
-        );
-        context.pop();
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil actualizado correctamente')),
+      );
+      context.pop();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     }
   }
 
@@ -94,71 +95,82 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTextfield(
-                label: 'Nombre completo',
-                controller: _nameController,
-                validator: validateName,
-                textInputAction: TextInputAction.next,
-                prefixIcon: const Icon(Icons.person_outline),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = adaptivePagePadding(constraints.maxWidth);
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              16,
+              horizontalPadding,
+              24,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextfield(
+                    label: 'Nombre completo',
+                    controller: _nameController,
+                    validator: validateName,
+                    textInputAction: TextInputAction.next,
+                    prefixIcon: const Icon(Icons.person_outline),
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextfield(
+                    label: 'Correo electronico',
+                    controller: _emailController,
+                    validator: validateEmail,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextfield(
+                    label: 'Telefono',
+                    controller: _phoneController,
+                    validator: (value) {
+                      if (value != null && value.trim().isNotEmpty) {
+                        return validatePhone(value);
+                      }
+                      return null;
+                    },
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.phone,
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextfield(
+                    label: 'Numero de licencia',
+                    controller: _licenseController,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _save(),
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: state.isSaving ? null : _save,
+                      child: state.isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Guardar Cambios'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              AppTextfield(
-                label: 'Correo electrónico',
-                controller: _emailController,
-                validator: validateEmail,
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined),
-              ),
-              const SizedBox(height: 16),
-              AppTextfield(
-                label: 'Teléfono',
-                controller: _phoneController,
-                validator: (v) {
-                  if (v != null && v.trim().isNotEmpty) {
-                    return validatePhone(v);
-                  }
-                  return null;
-                },
-                textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.phone,
-                prefixIcon: const Icon(Icons.phone_outlined),
-              ),
-              const SizedBox(height: 16),
-              AppTextfield(
-                label: 'Número de licencia',
-                controller: _licenseController,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _save(),
-                prefixIcon: const Icon(Icons.badge_outlined),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: state.isSaving ? null : _save,
-                  child: state.isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Guardar Cambios'),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
