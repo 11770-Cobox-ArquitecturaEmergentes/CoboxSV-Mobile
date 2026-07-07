@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "549954031617",
+    "project_id": "coboxsv-mobile",
+    "storage_bucket": "coboxsv-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549954031617:android:7f3a936e97e492f06f3000",
+        "android_client_info": {
+          "package_name": "com.cobox.cobox_sv_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDkc2gj2tiKXdj4MgE2Wj9f4F5VXv77yk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
