@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cobox_sv_mobile/app/colors.dart';
+import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:cobox_sv_mobile/features/home/presentation/providers/home_provider.dart';
 
@@ -85,80 +86,99 @@ class _HomePageState extends ConsumerState<HomePage> {
         subtitle: routeLabel,
         initial: userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
       ),
-      body: RefreshIndicator(
-        onRefresh: controller.refresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (homeState.errorMessage != null && dashboard == null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    homeState.errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.danger,
-                        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding =
+              adaptivePagePadding(constraints.maxWidth);
+          final statColumns = adaptiveGridColumns(
+            constraints.maxWidth,
+            compact: 2,
+            medium: 2,
+            expanded: 4,
+          );
+          final statAspectRatio = constraints.maxWidth >= 1100
+              ? 1.25
+              : constraints.maxWidth >= 700
+                  ? 1.1
+                  : 0.95;
+
+          return RefreshIndicator(
+            onRefresh: controller.refresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding:
+                  EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (homeState.errorMessage != null && dashboard == null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        homeState.errorMessage!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.danger,
+                            ),
+                      ),
+                    ),
+                  _HeroStatusCard(
+                    userName: userName,
+                    routeLabel: routeLabel,
+                    serviceLabel: serviceLabel,
                   ),
-                ),
-              _HeroStatusCard(
-                userName: userName,
-                routeLabel: routeLabel,
-                serviceLabel: serviceLabel,
-              ),
-              const SizedBox(height: 20),
-              if (homeState.status == HomeStatus.loading && dashboard == null)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 20),
-                  child: LinearProgressIndicator(),
-                ),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: stats.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.95,
-                ),
-                itemBuilder: (context, index) {
-                  return _StatCard(stat: stats[index]);
-                },
-              ),
-              const SizedBox(height: 20),
-              _SectionCard(
-                title: 'Actividad reciente',
-                child: Column(
-                  children: [
-                    if (activities.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: _EmptyActivity(),
-                      )
-                    else
-                      for (var i = 0; i < activities.length; i++) ...[
-                        _ActivityTile(data: activities[i]),
-                        if (i != activities.length - 1)
-                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 20),
+                  if (homeState.status == HomeStatus.loading && dashboard == null)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: LinearProgressIndicator(),
+                    ),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: stats.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: statColumns,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: statAspectRatio,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _StatCard(stat: stats[index]);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionCard(
+                    title: 'Actividad reciente',
+                    child: Column(
+                      children: [
+                        if (activities.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: _EmptyActivity(),
+                          )
+                        else
+                          for (var i = 0; i < activities.length; i++) ...[
+                            _ActivityTile(data: activities[i]),
+                            if (i != activities.length - 1)
+                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                          ],
                       ],
-                  ],
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _PlanRouteCard(
+                    onPressed: () => context.go('/routes'),
+                  ),
+                  const SizedBox(height: 16),
+                  _FeedbackCard(
+                    completedOrders: dashboard?.completedOrders ?? 0,
+                    pendingOrders: dashboard?.pendingOrders ?? 0,
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              _PlanRouteCard(
-                onPressed: () => context.go('/routes'),
-              ),
-              const SizedBox(height: 16),
-              _FeedbackCard(
-                completedOrders: dashboard?.completedOrders ?? 0,
-                pendingOrders: dashboard?.pendingOrders ?? 0,
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

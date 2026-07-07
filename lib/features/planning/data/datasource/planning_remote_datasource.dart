@@ -47,7 +47,7 @@ class PlanningRemoteDataSource {
   Future<void> updatePlanStatus(String id, String status) async {
     if (status.toUpperCase() != 'IN_PROGRESS') {
       throw const ServerException(
-        'El backend actual solo permite iniciar rutas desde planificacion',
+        'Las rutas solo pueden iniciarse desde Planificacion',
       );
     }
 

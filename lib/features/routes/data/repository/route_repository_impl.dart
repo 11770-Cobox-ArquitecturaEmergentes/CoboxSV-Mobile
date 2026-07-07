@@ -19,7 +19,9 @@ class RouteRepositoryImpl implements RouteRepository {
     try {
       final isConnected = await _networkInfo.checkConnectivity();
       if (!isConnected) {
-        throw const NetworkFailure(message: 'No internet connection');
+        throw const NetworkFailure(
+          message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+        );
       }
 
       final models = await _remoteDataSource.getRoutes(date: date);
@@ -37,7 +39,9 @@ class RouteRepositoryImpl implements RouteRepository {
     try {
       final isConnected = await _networkInfo.checkConnectivity();
       if (!isConnected) {
-        throw const NetworkFailure(message: 'No internet connection');
+        throw const NetworkFailure(
+          message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+        );
       }
 
       final model = await _remoteDataSource.getRouteDetail(id);
@@ -55,7 +59,9 @@ class RouteRepositoryImpl implements RouteRepository {
     try {
       final isConnected = await _networkInfo.checkConnectivity();
       if (!isConnected) {
-        throw const NetworkFailure(message: 'No internet connection');
+        throw const NetworkFailure(
+          message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+        );
       }
 
       final model = await _remoteDataSource.startRoute(id);
@@ -73,7 +79,9 @@ class RouteRepositoryImpl implements RouteRepository {
     try {
       final isConnected = await _networkInfo.checkConnectivity();
       if (!isConnected) {
-        throw const NetworkFailure(message: 'No internet connection');
+        throw const NetworkFailure(
+          message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+        );
       }
 
       final model = await _remoteDataSource.completeStop(routeId, stopId);

@@ -91,13 +91,13 @@ class AuthRemoteDataSource {
 
   Future<void> forgotPassword(String email) async {
     throw const AppException(
-      'La recuperación de contraseña no está disponible en el backend actual.',
+      'La recuperacion de contrasena no esta disponible por el momento.',
     );
   }
 
   Future<void> resetPassword(String token, String password) async {
     throw const AppException(
-      'El restablecimiento de contraseña no está disponible en el backend actual.',
+      'El restablecimiento de contrasena no esta disponible por el momento.',
     );
   }
 

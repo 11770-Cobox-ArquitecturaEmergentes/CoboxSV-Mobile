@@ -32,7 +32,9 @@ class PlanningRepositoryImpl implements PlanningRepository {
         return cached.map((m) => m.toEntity()).toList();
       }
 
-      throw const NetworkFailure(message: 'No internet connection and no cached data');
+      throw const NetworkFailure(
+        message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+      );
     } on Failure {
       rethrow;
     } catch (e) {
@@ -60,7 +62,9 @@ class PlanningRepositoryImpl implements PlanningRepository {
         return cached.toEntity();
       }
 
-      throw const NetworkFailure(message: 'No internet connection and no cached data');
+      throw const NetworkFailure(
+        message: 'No se pudo cargar la informacion. Intenta nuevamente.',
+      );
     } on Failure {
       rethrow;
     } catch (e) {

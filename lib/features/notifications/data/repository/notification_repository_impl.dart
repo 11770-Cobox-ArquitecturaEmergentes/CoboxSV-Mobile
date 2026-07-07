@@ -17,7 +17,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   @override
   Future<List<NotificationEntity>> getNotifications() async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo completar la operacion. Intenta nuevamente.',
+      );
     }
     try {
       final models = await remoteDataSource.getNotifications();
@@ -30,7 +32,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   @override
   Future<void> markAsRead(String id) async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo completar la operacion. Intenta nuevamente.',
+      );
     }
     try {
       await remoteDataSource.markAsRead(id);
@@ -42,7 +46,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   @override
   Future<void> markAllAsRead() async {
     if (!await networkInfo.isConnected.first) {
-      throw const NetworkFailure(message: 'Sin conexión a internet');
+      throw const NetworkFailure(
+        message: 'No se pudo completar la operacion. Intenta nuevamente.',
+      );
     }
     try {
       await remoteDataSource.markAllAsRead();
