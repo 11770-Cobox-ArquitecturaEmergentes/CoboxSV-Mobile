@@ -17,7 +17,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<ProfileEntity> getProfile() async {
-    if (!await networkInfo.isConnected.first) {
+    if (!await networkInfo.checkConnectivity()) {
       throw const NetworkFailure(
         message: 'No se pudo cargar el perfil. Intenta nuevamente.',
       );
@@ -32,7 +32,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<ProfileEntity> updateProfile(ProfileEntity profile) async {
-    if (!await networkInfo.isConnected.first) {
+    if (!await networkInfo.checkConnectivity()) {
       throw const NetworkFailure(
         message: 'No se pudo guardar el perfil. Intenta nuevamente.',
       );
@@ -48,7 +48,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<String> uploadPhoto(String filePath) async {
-    if (!await networkInfo.isConnected.first) {
+    if (!await networkInfo.checkConnectivity()) {
       throw const NetworkFailure(
         message: 'No se pudo subir la foto. Intenta nuevamente.',
       );
@@ -62,7 +62,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<void> changePassword(String currentPassword, String newPassword) async {
-    if (!await networkInfo.isConnected.first) {
+    if (!await networkInfo.checkConnectivity()) {
       throw const NetworkFailure(
         message: 'No se pudo cambiar la contrasena. Intenta nuevamente.',
       );

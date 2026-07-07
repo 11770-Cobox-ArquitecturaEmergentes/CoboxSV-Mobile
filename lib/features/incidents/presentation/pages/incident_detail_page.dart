@@ -310,6 +310,8 @@ class _StatusHeader extends StatelessWidget {
 
     return AppCard(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: cs.surface,
+      border: Border.all(color: cs.outlineVariant),
       child: Row(
         children: [
           Container(
@@ -425,6 +427,8 @@ class _DetailSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppCard(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      color: cs.surface,
+      border: Border.all(color: cs.outlineVariant),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

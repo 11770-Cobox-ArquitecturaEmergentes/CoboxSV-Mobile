@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:cobox_sv_mobile/features/evidence/data/models/evidence_models.dart';
 import 'package:cobox_sv_mobile/features/evidence/data/services/evidence_id_service.dart';
@@ -28,13 +29,15 @@ class EvidenceCaptureService {
     );
     if (picked == null) return null;
 
-    final file = File(picked.path);
+    final clientEvidenceId = newClientUuid();
+    final sourceFile = File(picked.path);
+    final file = await _persistPickedFile(sourceFile, clientEvidenceId);
     final sizeBytes = await file.length();
     final sha256Hash = await sha256.bind(file.openRead()).first;
     final position = await _tryCurrentPosition();
 
     return EvidenceDraft(
-      clientEvidenceId: newClientUuid(),
+      clientEvidenceId: clientEvidenceId,
       filePath: file.path,
       driverId: driverId,
       orderId: orderId,
@@ -75,6 +78,28 @@ class EvidenceCaptureService {
   String _mimeType(String path) {
     final normalized = path.toLowerCase();
     if (normalized.endsWith('.png')) return 'image/png';
+    if (normalized.endsWith('.webp')) return 'image/webp';
     return 'image/jpeg';
+  }
+
+  Future<File> _persistPickedFile(File source, String clientEvidenceId) async {
+    final extension = _extension(source.path);
+    final appDirectory = await getApplicationDocumentsDirectory();
+    final directory = Directory(
+      '${appDirectory.path}${Platform.pathSeparator}cobox_evidence',
+    );
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return source.copy(
+      '${directory.path}${Platform.pathSeparator}$clientEvidenceId$extension',
+    );
+  }
+
+  String _extension(String path) {
+    final normalized = path.toLowerCase();
+    if (normalized.endsWith('.png')) return '.png';
+    if (normalized.endsWith('.webp')) return '.webp';
+    return '.jpg';
   }
 }

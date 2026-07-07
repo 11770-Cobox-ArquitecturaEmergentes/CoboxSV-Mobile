@@ -136,18 +136,27 @@ class _EvidenceTile extends StatelessWidget {
         children: [
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(draft.filePath),
-                  width: 104,
-                  height: 104,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(9),
+                  child: Image.file(
+                    File(draft.filePath),
                     width: 104,
                     height: 104,
-                    color: cs.surfaceContainerHighest,
-                    child: Icon(Icons.broken_image_outlined, color: cs.onSurfaceVariant),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 104,
+                      height: 104,
+                      color: cs.surfaceContainerHighest,
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -186,27 +195,28 @@ class _AddEvidenceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = context.colorScheme;
     return Material(
-      color: cs.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
+      color: cs.surface,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           width: 104,
           height: 104,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: cs.outlineVariant),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_photo_alternate_outlined, color: cs.onSurfaceVariant),
+              Icon(Icons.add_photo_alternate_outlined, color: cs.primary),
               const SizedBox(height: 4),
               Text(
                 'Agregar',
                 style: context.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -225,12 +235,12 @@ class _EvidenceStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      EvidenceStatus.captured => ('Pendiente', Colors.blueGrey),
+      EvidenceStatus.captured => ('Pendiente', Colors.blueGrey.shade700),
       EvidenceStatus.intentCreated => ('Preparada', Colors.indigo),
-      EvidenceStatus.uploaded => ('Subida', Colors.blue),
-      EvidenceStatus.confirmed => ('Confirmada', Colors.teal),
-      EvidenceStatus.synced => ('Sincronizada', Colors.green),
-      EvidenceStatus.failed => ('Fallida', Colors.red),
+      EvidenceStatus.uploaded => ('Subida', Colors.blue.shade700),
+      EvidenceStatus.confirmed => ('Confirmada', Colors.teal.shade700),
+      EvidenceStatus.synced => ('Sincronizada', Colors.green.shade700),
+      EvidenceStatus.failed => ('Fallida', Colors.red.shade700),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),

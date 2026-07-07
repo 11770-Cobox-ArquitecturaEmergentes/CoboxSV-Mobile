@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
 import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
@@ -56,24 +57,69 @@ class _CreateIncidentPageState extends ConsumerState<CreateIncidentPage> {
     );
 
     try {
+      final hasConnection = await ref.read(networkInfoProvider).checkConnectivity();
+      if (!hasConnection) {
+        await ref.read(incidentsProvider.notifier).queuePendingReport(
+              incident: incident,
+              evidences: _evidences,
+              lastError: 'Sin conexion',
+            );
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Incidencia guardada. Se enviara al volver la conexion.'),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+
       final created = await ref.read(incidentsProvider.notifier).createIncident(incident);
       if (created == null) {
-        throw Exception('No se pudo crear la incidencia.');
+        await ref.read(incidentsProvider.notifier).queuePendingReport(
+              incident: incident,
+              evidences: _evidences,
+              lastError: ref.read(incidentsProvider).error ?? 'Envio no confirmado',
+            );
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Incidencia guardada. Se enviara al volver la conexion.'),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
       }
 
       final synced = <EvidenceDraft>[];
       for (final evidence in _evidences) {
-        synced.add(await ref.read(evidenceWorkflowServiceProvider).uploadAndSync(
-              draft: evidence,
-              eventType: 'INCIDENT_EVIDENCE',
-              aggregateType: 'INCIDENT',
-              aggregateId: created.id,
-              payload: {
-                'incidentId': created.id,
-                'type': _type.value,
-                'description': description,
-              },
-            ));
+        try {
+          synced.add(await ref.read(evidenceWorkflowServiceProvider).uploadAndSync(
+                draft: evidence,
+                eventType: 'INCIDENT_EVIDENCE',
+                aggregateType: 'INCIDENT',
+                aggregateId: created.id,
+                payload: {
+                  'incidentId': created.id,
+                  'type': _type.value,
+                  'description': description,
+                },
+              ));
+        } catch (_) {
+          synced.add(evidence.copyWith(
+            status: EvidenceStatus.failed,
+            syncEventType: 'INCIDENT_EVIDENCE',
+            syncAggregateType: 'INCIDENT',
+            syncAggregateId: created.id,
+            syncPayload: {
+              'incidentId': created.id,
+              'type': _type.value,
+              'description': description,
+            },
+          ));
+        }
       }
 
       setState(() {
@@ -82,8 +128,15 @@ class _CreateIncidentPageState extends ConsumerState<CreateIncidentPage> {
       });
 
       if (!mounted) return;
+      final hasPendingEvidence = synced.any((item) => item.status == EvidenceStatus.failed);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incidencia reportada')),
+        SnackBar(
+          content: Text(
+            hasPendingEvidence
+                ? 'Incidencia reportada. Algunas evidencias quedaron en cola.'
+                : 'Incidencia reportada',
+          ),
+        ),
       );
       Navigator.of(context).pop();
     } catch (error) {
@@ -105,7 +158,7 @@ class _CreateIncidentPageState extends ConsumerState<CreateIncidentPage> {
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _error = 'La incidencia o sus evidencias no pudieron completarse. Las evidencias quedaron en cola.';
+        _error = 'No se pudo reportar la incidencia. Revisa tu conexion e intenta nuevamente.';
       });
     }
   }
@@ -154,10 +207,24 @@ class _CreateIncidentPageState extends ConsumerState<CreateIncidentPage> {
                     final isSelected = _type == type;
                     return ChoiceChip(
                       selected: isSelected,
+                      showCheckmark: false,
+                      backgroundColor: cs.surface,
+                      selectedColor: cs.primaryContainer,
+                      side: BorderSide(
+                        color: isSelected ? cs.primary : cs.outlineVariant,
+                      ),
+                      labelStyle: theme.textTheme.labelLarge?.copyWith(
+                        color: isSelected ? cs.onPrimaryContainer : cs.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(type.icon, size: 18),
+                          Icon(
+                            type.icon,
+                            size: 18,
+                            color: isSelected ? cs.onPrimaryContainer : cs.onSurface,
+                          ),
                           const SizedBox(width: 6),
                           Text(type.label),
                         ],
