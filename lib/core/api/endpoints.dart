@@ -27,6 +27,10 @@ class Endpoints {
   static const String incidentTypes = '/incidents/types';
   static const String uploadEvidence = '/incidents/upload';
 
+  static const String mobileEvidenceUploadIntents =
+      '/mobile/evidence/upload-intents';
+  static const String edgeSyncBatches = '/edge/sync-batches';
+
   static const String profile = '/profile';
   static const String updateProfile = '/profile';
   static const String uploadPhoto = '/profile/photo';

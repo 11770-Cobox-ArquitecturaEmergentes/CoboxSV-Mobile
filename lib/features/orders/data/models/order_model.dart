@@ -10,6 +10,7 @@ part 'order_model.g.dart';
 @JsonSerializable()
 class OrderModel {
   final String id;
+  final String? routeId;
   final String orderNumber;
   final String clientName;
   final String? clientPhone;
@@ -28,6 +29,7 @@ class OrderModel {
 
   const OrderModel({
     required this.id,
+    this.routeId,
     required this.orderNumber,
     required this.clientName,
     this.clientPhone,
@@ -48,6 +50,7 @@ class OrderModel {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: (json['id'] ?? '').toString(),
+      routeId: json['routeId']?.toString(),
       orderNumber: (json['orderNumber'] ?? json['id'] ?? '').toString(),
       clientName: 'Cliente ${(json['clientId'] ?? '').toString()}',
       clientPhone: json['clientPhone'] as String?,
@@ -77,6 +80,7 @@ class OrderModel {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'routeId': routeId,
         'orderNumber': orderNumber,
         'clientName': clientName,
         'clientPhone': clientPhone,
@@ -97,6 +101,7 @@ class OrderModel {
   OrderEntity toEntity() {
     return OrderEntity(
       id: id,
+      routeId: routeId,
       orderNumber: orderNumber,
       clientName: clientName,
       clientPhone: clientPhone,
@@ -138,6 +143,7 @@ class OrderModel {
   factory OrderModel.fromEntity(OrderEntity entity) {
     return OrderModel(
       id: entity.id,
+      routeId: entity.routeId,
       orderNumber: entity.orderNumber,
       clientName: entity.clientName,
       clientPhone: entity.clientPhone,

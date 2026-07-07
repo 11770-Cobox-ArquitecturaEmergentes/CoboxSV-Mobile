@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
+import 'package:cobox_sv_mobile/features/incidents/presentation/pages/create_incident_page.dart';
 import 'package:cobox_sv_mobile/features/incidents/presentation/providers/incident_provider.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/address_entity.dart';
 import 'package:cobox_sv_mobile/shared/enums/incident_type.dart';
@@ -93,10 +94,15 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
                 children: [
                   if (!_showForm)
                     _ReportEntryCard(
-                      onTap: () {
-                        setState(() {
-                          _showForm = true;
-                        });
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CreateIncidentPage(),
+                          ),
+                        );
+                        if (mounted) {
+                          await notifier.refresh();
+                        }
                       },
                     )
                   else
