@@ -56,6 +56,7 @@ class OrderRemoteDataSource {
     String? notes,
     String? signature,
     List<String>? photoUrls,
+    int? routeId,
   }) async {
     final body = <String, dynamic>{};
     if (notes != null) body['notes'] = notes;
@@ -71,7 +72,7 @@ class OrderRemoteDataSource {
 
     final payload = switch (status) {
       'completed' => {
-          'routeId': 0,
+          'routeId': routeId ?? 0,
           'photoUrl': (photoUrls != null && photoUrls.isNotEmpty)
               ? photoUrls.first
               : '',

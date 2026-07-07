@@ -24,6 +24,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>CoBox usa la camara para capturar evidencias de entrega e incidencias.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CoBox usa la galeria para adjuntar evidencias existentes.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CoBox usa tu ubicacion para asociar evidencias con la ruta activa.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

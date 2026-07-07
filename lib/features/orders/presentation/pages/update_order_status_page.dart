@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:cobox_sv_mobile/core/utils/extensions.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:cobox_sv_mobile/features/evidence/data/models/evidence_models.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/providers/evidence_provider.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/widgets/evidence_capture_panel.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/order_entity.dart';
 import 'package:cobox_sv_mobile/features/orders/presentation/providers/order_provider.dart';
 import 'package:cobox_sv_mobile/shared/enums/order_status.dart';
@@ -24,8 +25,9 @@ class _UpdateOrderStatusPageState extends ConsumerState<UpdateOrderStatusPage> {
   OrderStatus? _selectedStatus;
   final _notesController = TextEditingController();
   String? _signature;
-  final List<String> _photoUrls = [];
+  List<EvidenceDraft> _evidences = [];
   bool _isSubmitting = false;
+  String? _submitError;
 
   List<OrderStatus> get _availableStatuses {
     switch (widget.order.status) {
@@ -50,34 +52,74 @@ class _UpdateOrderStatusPageState extends ConsumerState<UpdateOrderStatusPage> {
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
-    final picker = ImagePicker();
-    final xFile = await picker.pickImage(source: ImageSource.camera);
-    if (xFile != null) {
-      setState(() => _photoUrls.add(xFile.path));
-    }
-  }
-
   Future<void> _submit() async {
     if (_selectedStatus == null) return;
+    if (_selectedStatus == OrderStatus.completed && _evidences.isEmpty) {
+      setState(() => _submitError = 'Agrega al menos una evidencia para completar la orden.');
+      return;
+    }
 
-    setState(() => _isSubmitting = true);
-    final result = await ref.read(ordersProvider.notifier).updateStatus(
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
+    try {
+      final routeId = int.tryParse(widget.order.routeId ?? '') ?? 0;
+      var syncedEvidences = _evidences;
+
+      if (_selectedStatus == OrderStatus.completed) {
+        syncedEvidences = [];
+        for (final evidence in _evidences) {
+          final synced = await ref.read(evidenceWorkflowServiceProvider).uploadAndSync(
+                draft: evidence,
+                eventType: 'ORDER_DELIVERY_EVIDENCE',
+                aggregateType: 'ORDER',
+                aggregateId: widget.order.id,
+                payload: {
+                  'orderId': widget.order.id,
+                  'routeId': routeId,
+                  'status': _selectedStatus!.value,
+                },
+              );
+          syncedEvidences.add(synced);
+        }
+        setState(() => _evidences = syncedEvidences);
+      }
+
+      final result = await ref.read(ordersProvider.notifier).updateStatus(
           id: widget.order.id,
           status: _selectedStatus!,
           notes: _notesController.text.isNotEmpty ? _notesController.text : null,
           signature: _signature,
-          photoUrls: _photoUrls.isNotEmpty ? _photoUrls : null,
-        );
-
-    setState(() => _isSubmitting = false);
-
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Estado actualizado a ${_selectedStatus!.label}')),
+          photoUrls: syncedEvidences
+              .map((evidence) => evidence.objectKey)
+              .whereType<String>()
+              .toList(),
+          routeId: routeId,
       );
-      context.pop();
+
+      setState(() => _isSubmitting = false);
+
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Estado actualizado a ${_selectedStatus!.label}')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      ref.read(evidenceSyncProvider.notifier).refreshPending();
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _submitError = 'No se pudo completar la evidencia. Quedo en cola para reintento.';
+      });
     }
+  }
+
+  Future<int> _driverId() async {
+    final user = await ref.read(authLocalDataSourceProvider).getUser();
+    return int.tryParse(user?.id ?? '') ?? 0;
   }
 
   @override
@@ -147,93 +189,28 @@ class _UpdateOrderStatusPageState extends ConsumerState<UpdateOrderStatusPage> {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Evidencia Fotográfica',
-              style: context.textTheme.titleSmall?.copyWith(
-                color: cs.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
+            FutureBuilder<int>(
+              future: _driverId(),
+              builder: (context, snapshot) {
+                final driverId = snapshot.data ?? 0;
+                return EvidenceCapturePanel(
+                  evidences: _evidences,
+                  driverId: driverId,
+                  orderId: int.tryParse(widget.order.id) ?? 0,
+                  routeId: int.tryParse(widget.order.routeId ?? '') ?? 0,
+                  type: 'DELIVERY_PHOTO',
+                  maxItems: 3,
+                  onChanged: (items) => setState(() => _evidences = items),
+                );
+              },
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  ..._photoUrls.map((url) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(url),
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: GestureDetector(
-                                onTap: () => setState(() => _photoUrls.remove(url)),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                  Material(
-                    borderRadius: BorderRadius.circular(8),
-                    color: cs.surfaceContainerHighest,
-                    child: InkWell(
-                      onTap: _pickPhoto,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: cs.outline.withValues(alpha: 0.5),
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.camera_alt_outlined,
-                              color: cs.onSurfaceVariant,
-                              size: 28,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Agregar',
-                              style: context.textTheme.bodySmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            if (_submitError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _submitError!,
+                style: context.textTheme.bodySmall?.copyWith(color: cs.error),
               ),
-            ),
+            ],
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:cobox_sv_mobile/features/orders/domain/entities/order_item_entit
 
 class OrderEntity extends Equatable {
   final String id;
+  final String? routeId;
   final String orderNumber;
   final String clientName;
   final String? clientPhone;
@@ -23,6 +24,7 @@ class OrderEntity extends Equatable {
 
   const OrderEntity({
     required this.id,
+    this.routeId,
     required this.orderNumber,
     required this.clientName,
     this.clientPhone,
@@ -42,7 +44,7 @@ class OrderEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-    id, orderNumber, clientName, clientPhone, deliveryAddress,
+    id, routeId, orderNumber, clientName, clientPhone, deliveryAddress,
     pickupAddress, status, items, scheduledDate, scheduledTimeWindow,
     actualDeliveryTime, weight, volume, notes, signature, photoUrls,
   ];

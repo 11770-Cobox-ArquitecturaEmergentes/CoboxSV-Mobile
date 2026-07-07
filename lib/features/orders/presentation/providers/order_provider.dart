@@ -181,6 +181,7 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
     String? notes,
     String? signature,
     List<String>? photoUrls,
+    int? routeId,
   }) async {
     try {
       final updated = await _updateOrderStatusUseCase(
@@ -189,6 +190,7 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
         notes: notes,
         signature: signature,
         photoUrls: photoUrls,
+        routeId: routeId,
       );
       final orders = state.orders.map((o) => o.id == id ? updated : o).toList();
       state = state.copyWith(orders: orders);
