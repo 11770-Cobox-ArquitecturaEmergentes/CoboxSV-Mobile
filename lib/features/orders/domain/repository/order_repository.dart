@@ -17,5 +17,6 @@ abstract class OrderRepository {
     String? notes,
     String? signature,
     List<String>? photoUrls,
+    int? routeId,
   });
 }

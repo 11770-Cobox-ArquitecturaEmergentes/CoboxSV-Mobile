@@ -15,34 +15,43 @@ class ProfileRemoteDataSource {
 
   Future<ProfileModel> getProfile() async {
     final currentUser = await _authLocalDataSource.getUser();
-    final currentUserId = currentUser?.id;
     final currentUserEmail = currentUser?.email;
 
-    if (currentUserId == null || currentUserId.isEmpty || currentUserEmail == null || currentUserEmail.isEmpty) {
+    if (currentUserEmail == null || currentUserEmail.isEmpty) {
       throw const ServerException('No se pudo resolver el usuario actual');
     }
 
-    final userData = await _safeGet('${Endpoints.users}/$currentUserId') ?? _currentUserToMap(currentUser);
-    final driverData = await _safeGetDriverByEmail(currentUserEmail);
-    final driverId = driverData?['id']?.toString() ?? currentUserId;
-    final routes = await _safeGetList(Endpoints.driverRoutes(driverId));
+    final userData =
+        await _safeGet(Endpoints.currentUser) ?? _currentUserToMap(currentUser);
+    final currentUserId =
+        userData['id']?.toString().isNotEmpty == true
+            ? userData['id'].toString()
+            : currentUser?.id?.toString() ?? '';
+    final resolvedEmail = userData['email']?.toString().isNotEmpty == true
+        ? userData['email'].toString()
+        : currentUserEmail;
+    final driverData = await _safeGetDriverByEmail(resolvedEmail);
+    final driverId = driverData?['id']?.toString();
+    final routes = driverId == null || driverId.isEmpty
+        ? const <dynamic>[]
+        : await _safeGetList(Endpoints.driverRoutes(driverId));
 
-    final activeRoute = routes.cast<Map<String, dynamic>?>().firstWhere(
-          (route) => route?['routeStatus']?.toString() == 'IN_PROGRESS',
-          orElse: () => routes.isNotEmpty
-              ? routes.first as Map<String, dynamic>
-              : null,
+    final routeMaps = routes.whereType<Map<String, dynamic>>().toList();
+    final activeRoute = routeMaps.firstWhere(
+          (route) => route['routeStatus']?.toString() == 'IN_PROGRESS',
+          orElse: () =>
+              routeMaps.isNotEmpty ? routeMaps.first : const <String, dynamic>{},
         );
 
-    final vehicleId = activeRoute?['vehicleId']?.toString();
-    final vehicleData = vehicleId == null
+    final vehicleId = activeRoute['vehicleId']?.toString();
+    final vehicleData = vehicleId == null || vehicleId.isEmpty
         ? null
         : await _safeGet('${Endpoints.vehicles}/$vehicleId');
 
     return ProfileModel(
       id: currentUserId,
       name: _resolveName(userData),
-      email: userData['email']?.toString() ?? '',
+      email: resolvedEmail,
       phone: userData['phone']?.toString(),
       photoUrl: null,
       employeeId: 'USR-$currentUserId',
@@ -82,12 +91,10 @@ class ProfileRemoteDataSource {
   Future<Map<String, dynamic>?> _safeGet(String path) async {
     try {
       final response = await _client.get(path);
-      return response.data as Map<String, dynamic>?;
-    } on AppException catch (error) {
-      if (_shouldIgnoreFleetError(error)) {
-        return null;
-      }
-      rethrow;
+      final data = response.data;
+      return data is Map<String, dynamic> ? data : null;
+    } on AppException {
+      return null;
     }
   }
 
@@ -97,24 +104,31 @@ class ProfileRemoteDataSource {
         Endpoints.driverSearch,
         queryParameters: {'email': email},
       );
-      return response.data as Map<String, dynamic>?;
+      final data = response.data;
+      return data is Map<String, dynamic> ? data : null;
     } on AppException catch (error) {
       if (_shouldIgnoreFleetError(error)) {
         return null;
       }
-      rethrow;
+      return null;
     }
   }
 
   Future<List<dynamic>> _safeGetList(String path) async {
     try {
       final response = await _client.get(path);
-      return response.data as List<dynamic>? ?? const [];
+      final data = response.data;
+      if (data is List<dynamic>) return data;
+      if (data is Map<String, dynamic>) {
+        final nested = data['data'] ?? data['items'] ?? data['content'];
+        if (nested is List<dynamic>) return nested;
+      }
+      return const [];
     } on AppException catch (error) {
       if (_shouldIgnoreFleetError(error)) {
         return const [];
       }
-      rethrow;
+      return const [];
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:cobox_sv_mobile/core/widgets/error.dart';
 import 'package:cobox_sv_mobile/core/widgets/loading.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/order_entity.dart';
 import 'package:cobox_sv_mobile/features/orders/presentation/providers/order_provider.dart';
+import 'package:cobox_sv_mobile/features/orders/presentation/pages/update_order_status_page.dart';
 import 'package:cobox_sv_mobile/features/orders/presentation/widgets/order_item_tile.dart';
 import 'package:cobox_sv_mobile/features/orders/presentation/widgets/status_update_bottom_sheet.dart';
 import 'package:cobox_sv_mobile/shared/enums/order_status.dart';
@@ -79,6 +80,18 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
+  Future<void> _openCompleteOrderFlow() async {
+    if (_order == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UpdateOrderStatusPage(order: _order!),
+      ),
+    );
+    if (mounted) {
+      await _loadOrder();
+    }
+  }
+
   Future<void> _callClient() async {
     if (_order?.clientPhone == null) return;
     final uri = Uri.parse('tel:${_order!.clientPhone}');
@@ -120,14 +133,22 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       ),
       body: _buildBody(cs),
       bottomNavigationBar: _order != null && _order!.status.isActive
-          && (_order!.status == OrderStatus.pending || _order!.status == OrderStatus.assigned)
+          && (_order!.status == OrderStatus.pending ||
+              _order!.status == OrderStatus.assigned ||
+              _order!.status == OrderStatus.inProgress)
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: FilledButton.icon(
-                  onPressed: _showStatusBottomSheet,
-                  icon: const Icon(Icons.update_rounded),
-                  label: const Text('Actualizar Estado'),
+                  onPressed: _order!.status == OrderStatus.inProgress
+                      ? _openCompleteOrderFlow
+                      : _showStatusBottomSheet,
+                  icon: Icon(_order!.status == OrderStatus.inProgress
+                      ? Icons.fact_check_outlined
+                      : Icons.update_rounded),
+                  label: Text(_order!.status == OrderStatus.inProgress
+                      ? 'Completar con evidencia'
+                      : 'Actualizar Estado'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 52),
                   ),

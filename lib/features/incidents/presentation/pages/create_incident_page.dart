@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
 import 'package:cobox_sv_mobile/core/widgets/app_textfield.dart';
+import 'package:cobox_sv_mobile/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:cobox_sv_mobile/features/evidence/data/models/evidence_models.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/providers/evidence_provider.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/widgets/evidence_capture_panel.dart';
+import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
+import 'package:cobox_sv_mobile/features/incidents/presentation/providers/incident_provider.dart';
 import 'package:cobox_sv_mobile/shared/enums/incident_type.dart';
 import 'package:cobox_sv_mobile/shared/widgets/primary_button.dart';
 
-class CreateIncidentPage extends StatefulWidget {
+class CreateIncidentPage extends ConsumerStatefulWidget {
   const CreateIncidentPage({super.key});
 
   @override
-  State<CreateIncidentPage> createState() => _CreateIncidentPageState();
+  ConsumerState<CreateIncidentPage> createState() => _CreateIncidentPageState();
 }
 
-class _CreateIncidentPageState extends State<CreateIncidentPage> {
+class _CreateIncidentPageState extends ConsumerState<CreateIncidentPage> {
   IncidentType _type = IncidentType.other;
   final _descriptionController = TextEditingController();
+  List<EvidenceDraft> _evidences = [];
+  bool _isSubmitting = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -21,43 +33,146 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
     super.dispose();
   }
 
-  void _showPhotoSourcePicker() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Camara'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Funcionalidad proximamente')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galeria'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Funcionalidad proximamente')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+  Future<void> _submit() async {
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      setState(() => _error = 'Describe los detalles de la incidencia.');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    final driverId = await _driverId();
+    final incident = IncidentEntity(
+      id: '',
+      type: _type,
+      title: _type.label,
+      description: description,
+      severity: IncidentSeverity.medium,
+      dateTime: DateTime.now(),
+      reportedBy: driverId.toString(),
     );
+
+    try {
+      final hasConnection = await ref.read(networkInfoProvider).checkConnectivity();
+      if (!hasConnection) {
+        await ref.read(incidentsProvider.notifier).queuePendingReport(
+              incident: incident,
+              evidences: _evidences,
+              lastError: 'Sin conexion',
+            );
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Incidencia guardada. Se enviara al volver la conexion.'),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+
+      final created = await ref.read(incidentsProvider.notifier).createIncident(incident);
+      if (created == null) {
+        await ref.read(incidentsProvider.notifier).queuePendingReport(
+              incident: incident,
+              evidences: _evidences,
+              lastError: ref.read(incidentsProvider).error ?? 'Envio no confirmado',
+            );
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Incidencia guardada. Se enviara al volver la conexion.'),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+
+      final synced = <EvidenceDraft>[];
+      for (final evidence in _evidences) {
+        try {
+          synced.add(await ref.read(evidenceWorkflowServiceProvider).uploadAndSync(
+                draft: evidence,
+                eventType: 'INCIDENT_EVIDENCE',
+                aggregateType: 'INCIDENT',
+                aggregateId: created.id,
+                payload: {
+                  'incidentId': created.id,
+                  'type': _type.value,
+                  'description': description,
+                },
+              ));
+        } catch (_) {
+          synced.add(evidence.copyWith(
+            status: EvidenceStatus.failed,
+            syncEventType: 'INCIDENT_EVIDENCE',
+            syncAggregateType: 'INCIDENT',
+            syncAggregateId: created.id,
+            syncPayload: {
+              'incidentId': created.id,
+              'type': _type.value,
+              'description': description,
+            },
+          ));
+        }
+      }
+
+      setState(() {
+        _evidences = synced;
+        _isSubmitting = false;
+      });
+
+      if (!mounted) return;
+      final hasPendingEvidence = synced.any((item) => item.status == EvidenceStatus.failed);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            hasPendingEvidence
+                ? 'Incidencia reportada. Algunas evidencias quedaron en cola.'
+                : 'Incidencia reportada',
+          ),
+        ),
+      );
+      Navigator.of(context).pop();
+    } catch (error) {
+      final syncNotifier = ref.read(evidenceSyncProvider.notifier);
+      syncNotifier.refreshPending();
+      final queuedIds = ref
+          .read(evidenceSyncProvider)
+          .pending
+          .map((item) => item.clientEvidenceId)
+          .toSet();
+      for (final evidence in _evidences) {
+        if (!queuedIds.contains(evidence.clientEvidenceId)) {
+          await syncNotifier.queue(evidence.copyWith(
+            status: EvidenceStatus.failed,
+            lastError: error.toString(),
+          ));
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _error = 'No se pudo reportar la incidencia. Revisa tu conexion e intenta nuevamente.';
+      });
+    }
+  }
+
+  Future<int> _driverId() async {
+    final user = await ref.read(authLocalDataSourceProvider).getUser();
+    return int.tryParse(user?.id ?? '') ?? 0;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final now = DateTime.now();
 
     return Scaffold(
       appBar: AppBar(
@@ -92,10 +207,24 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
                     final isSelected = _type == type;
                     return ChoiceChip(
                       selected: isSelected,
+                      showCheckmark: false,
+                      backgroundColor: cs.surface,
+                      selectedColor: cs.primaryContainer,
+                      side: BorderSide(
+                        color: isSelected ? cs.primary : cs.outlineVariant,
+                      ),
+                      labelStyle: theme.textTheme.labelLarge?.copyWith(
+                        color: isSelected ? cs.onPrimaryContainer : cs.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(type.icon, size: 18),
+                          Icon(
+                            type.icon,
+                            size: 18,
+                            color: isSelected ? cs.onPrimaryContainer : cs.onSurface,
+                          ),
                           const SizedBox(width: 6),
                           Text(type.label),
                         ],
@@ -113,22 +242,19 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
                   textCapitalization: TextCapitalization.sentences,
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'Evidencia fotografica',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: List.generate(
-                    3,
-                    (_) => _PhotoSlot(onTap: _showPhotoSourcePicker),
-                  ),
+                FutureBuilder<int>(
+                  future: _driverId(),
+                  builder: (context, snapshot) {
+                    return EvidenceCapturePanel(
+                      evidences: _evidences,
+                      driverId: snapshot.data ?? 0,
+                      orderId: 0,
+                      routeId: 0,
+                      type: 'INCIDENT_PHOTO',
+                      maxItems: 3,
+                      onChanged: (items) => setState(() => _evidences = items),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 Card(
@@ -158,17 +284,13 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '-34.6037, -58.3816',
+                                _locationLabel(),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: cs.onSurfaceVariant,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('Actualizar ubicacion'),
                         ),
                       ],
                     ),
@@ -205,7 +327,7 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '17/06/2026',
+                        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: cs.onSurface,
                         ),
@@ -214,10 +336,18 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (_error != null) ...[
+                  Text(
+                    _error!,
+                    style: theme.textTheme.bodySmall?.copyWith(color: cs.error),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 PrimaryButton(
                   label: 'Reportar Incidencia',
                   fullWidth: true,
-                  onPressed: () {},
+                  loading: _isSubmitting,
+                  onPressed: _isSubmitting ? null : _submit,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -227,90 +357,13 @@ class _CreateIncidentPageState extends State<CreateIncidentPage> {
       ),
     );
   }
-}
 
-class _PhotoSlot extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _PhotoSlot({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 80,
-        height: 80,
-        child: CustomPaint(
-          painter: _DashedBorderPainter(
-            color: cs.outline.withValues(alpha: 0.5),
-            borderRadius: 12,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add, color: cs.onSurfaceVariant, size: 24),
-                const SizedBox(height: 4),
-                Text(
-                  'Tomar foto',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontSize: 10,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double borderRadius;
-
-  _DashedBorderPainter({required this.color, required this.borderRadius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dashWidth = 6.0;
-    const dashSpace = 4.0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    final rect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(borderRadius),
-    );
-    final path = Path()..addRRect(rect);
-
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final nextDistance = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, nextDistance),
-          paint,
-        );
-        distance += dashWidth + dashSpace;
-      }
+  String _locationLabel() {
+    if (_evidences.isEmpty ||
+        _evidences.first.latitude == null ||
+        _evidences.first.longitude == null) {
+      return 'Se capturara al adjuntar evidencia';
     }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.borderRadius != borderRadius;
+    return '${_evidences.first.latitude}, ${_evidences.first.longitude}';
   }
 }

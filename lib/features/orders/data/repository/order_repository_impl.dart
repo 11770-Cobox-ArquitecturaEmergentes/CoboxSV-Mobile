@@ -50,6 +50,7 @@ class OrderRepositoryImpl implements OrderRepository {
     String? notes,
     String? signature,
     List<String>? photoUrls,
+    int? routeId,
   }) async {
     try {
       final model = await _dataSource.updateOrderStatus(
@@ -58,6 +59,7 @@ class OrderRepositoryImpl implements OrderRepository {
         notes: notes,
         signature: signature,
         photoUrls: photoUrls,
+        routeId: routeId,
       );
       return model.toEntity();
     } on AppException catch (e) {

@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/app/colors.dart';
 import 'package:cobox_sv_mobile/core/utils/responsive_layout.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/providers/evidence_provider.dart';
 import 'package:cobox_sv_mobile/features/incidents/domain/entities/incident_entity.dart';
+import 'package:cobox_sv_mobile/features/incidents/presentation/pages/create_incident_page.dart';
 import 'package:cobox_sv_mobile/features/incidents/presentation/providers/incident_provider.dart';
 import 'package:cobox_sv_mobile/features/orders/domain/entities/address_entity.dart';
 import 'package:cobox_sv_mobile/shared/enums/incident_type.dart';
@@ -21,15 +26,23 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
   IncidentType? _selectedType;
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
+  StreamSubscription<bool>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(incidentsProvider.notifier).loadIncidents());
+    _connectivitySubscription = ref.read(networkInfoProvider).isConnected.listen((connected) {
+      if (connected) {
+        ref.read(incidentsProvider.notifier).loadIncidents();
+        ref.read(evidenceSyncProvider.notifier).retryPending();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _locationController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -93,10 +106,15 @@ class _IncidentsPageState extends ConsumerState<IncidentsPage> {
                 children: [
                   if (!_showForm)
                     _ReportEntryCard(
-                      onTap: () {
-                        setState(() {
-                          _showForm = true;
-                        });
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CreateIncidentPage(),
+                          ),
+                        );
+                        if (mounted) {
+                          await notifier.refresh();
+                        }
                       },
                     )
                   else

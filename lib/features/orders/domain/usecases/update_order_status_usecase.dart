@@ -14,6 +14,7 @@ class UpdateOrderStatusUseCase {
     String? notes,
     String? signature,
     List<String>? photoUrls,
+    int? routeId,
   }) async {
     try {
       return await _repository.updateOrderStatus(
@@ -22,6 +23,7 @@ class UpdateOrderStatusUseCase {
         notes: notes,
         signature: signature,
         photoUrls: photoUrls,
+        routeId: routeId,
       );
     } on Exception catch (e) {
       throw handleException(e);

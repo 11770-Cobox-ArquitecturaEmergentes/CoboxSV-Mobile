@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cobox_sv_mobile/app/providers.dart';
 import 'package:cobox_sv_mobile/app/theme.dart';
+import 'package:cobox_sv_mobile/features/evidence/presentation/providers/evidence_provider.dart';
 
 class CoBoxApp extends ConsumerWidget {
   const CoBoxApp({super.key});
@@ -13,6 +14,11 @@ class CoBoxApp extends ConsumerWidget {
     final router = ref.watch(goRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
+    ref.listen(connectivityProvider, (_, next) {
+      if (next.valueOrNull == true) {
+        ref.read(evidenceSyncProvider.notifier).retryPending();
+      }
+    });
 
     return MaterialApp.router(
       title: 'CoBox SV',
