@@ -26,7 +26,7 @@ jobs:
   android-distribution:
     runs-on: ubuntu-latest
     env:
-      API_BASE_URL: https://coboxsv.duckdns.org/api/v1
+      API_BASE_URL: https://d2wqm1u58okqf2.cloudfront.net/api/v1
       AUTH0_CLIENT_ID: 3YAOQetms7faGLF5uGh8MeaGzZs3t3DR
       AUTH0_ISSUER_URI: https://dev-e5ik5gbwpzkcqfrw.us.auth0.com/
       AUTH0_AUDIENCE: https://api.coboxsv.dev
