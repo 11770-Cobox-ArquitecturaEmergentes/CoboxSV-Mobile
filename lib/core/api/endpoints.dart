@@ -1,7 +1,7 @@
 class Endpoints {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://api.coboxsv.com/api/v1',
+    defaultValue: 'https://d2wqm1u58okqf2.cloudfront.net/api/v1',
   );
 
   static const String dashboard = '/drivers/{driverId}/dashboard';
